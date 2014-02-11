@@ -3,8 +3,9 @@
 import sys
 from PyQt4 import QtGui, QtCore, Qt
 
-from plot_template import plot_template
+#from plot_template import plot_template
 # I just copied the plot_template.py from the previous project. It doesn't seem to have anything other than GUI template in it.
+# No longer necessary
 
 import sim900.sim900Client as sc
 
@@ -46,9 +47,9 @@ class fridge_gui(QtGui.QDialog):
         self.dl=data_logger
         # Do we need to actually connect the data logger this way? I think this might be the best way.
             
+        self.setupPlot()
         self.setupUI()
         self.setupList()
-        #self.setupPlot()
         self.setupSlots()
         self.setupTimer()
         
@@ -378,7 +379,7 @@ class fridge_gui(QtGui.QDialog):
             #New data buttons
 
         #Create Plot Background
-        self.temp_plot = plot_template()
+        # self.temp_plot = plot_template()
 
         #Add Objects to Layouts
         self.measurements_layout.addWidget(self.bridge_setpoint_label,0,0,1,1)
@@ -465,11 +466,12 @@ class fridge_gui(QtGui.QDialog):
 
         '''self.plot_layout.addWidget(self.temp_plot,0,0,1,4)
         self.plot_layout.addWidget(self.status_label,1,0,1,1)
-        self.plot_layout.addWidget(self.status_value,1,1,1,1)
-        self.plot_layout.addWidget(self.status_bridge_setpoint_command_label,1,2,1,1)
-        self.plot_layout.addWidget(self.status_bridge_setpoint_command_value,1,3,1,1)'''
+        self.plot_layout.addWidget(self.status_value,1,1,1,1)'''
+        self.plot_layout.addWidget(self.status_bridge_setpoint_command_label,2,2,1,1)
+        self.plot_layout.addWidget(self.status_bridge_setpoint_command_value,2,3,1,1)
         # Old plot widgets
-        # self.plot_layout.addWidget(0,0,1,4,self.canvas)
+        self.plot_layout.addWidget(self.mpl_toolbar,0,1,1,1)
+        self.plot_layout.addWidget(self.canvas,1,0,1,4)
         
         self.data_layout.addWidget(self.startstopButton,0,0,1,1)
         self.data_layout.addWidget(self.opencloseButton,1,0,1,1)
@@ -556,14 +558,16 @@ class fridge_gui(QtGui.QDialog):
         self.bridge_setpoint_curve.attach(self.temp_plot.plot_region)
         self.bridge_setpoint_curve.setPen(Qt.QPen(Qt.Qt.green))'''
         # Old plot setup.
-        
     def setupPlot(self):
         self.dpi = 72
         self.fig = Figure((9.1, 5.2), dpi=self.dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setParent(self)
-        self.canvas.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
-        # For matplotlib plot.
+        self.canvas.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Expanding)
+        self.axes = self.fig.add_subplot(111)
+        self.mpl_toolbar = NavigationToolbar(self.canvas,self)
+        # Sets up plot.
+        
         
     def setupSlots(self):
         QtCore.QObject.connect(self.enabled_command_check,QtCore.SIGNAL("stateChanged(int)"),self.blur_commands)
@@ -1013,6 +1017,11 @@ class fridge_gui(QtGui.QDialog):
         #Replot
         self.temp_plot.plot_region.replot()'''
         # Old plot updating.
+        # New plot updating
+        self.axes.cla()
+        self.axes.plot(self.temp_list)
+        self.axes.plot(self.bridge_setpoint_list)
+        self.canvas.draw()
 
     
         

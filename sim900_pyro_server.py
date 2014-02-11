@@ -1,7 +1,6 @@
 import Pyro4
 import simplejson as json
-import collections
-
+import random
 
 class sim900Client():
     def __init__(self, hostname="localhost", port=50001):
@@ -15,7 +14,8 @@ class sim900Client():
     def fetchDict(self):
     # Loads up an empty dict for now.
         self.send("read")
-        fakedata={"bridge_temperature_setpoint":0,"bridge_temp_value":0,"therm_temperature":[0,0,0],"dvm_volts":[0,0],"pid_setpoint":0,"pid_measure_mon":0,
+        btv=random.uniform(0.99,1.01)
+        fakedata={"bridge_temperature_setpoint":1,"bridge_temp_value":btv,"therm_temperature":[0,0,0],"dvm_volts":[0,0],"pid_setpoint":0,"pid_measure_mon":0,
         "pid_error_mon":0,"pid_output_mon":0,"pid_propor_on":0,"pid_integral_on":0, "pid_deriv_on":0,"pid_offset_on":0,"pid_propor_gain":0,"pid_integral_gain":0,
         "pid_deriv_gain":0,"pid_offset":0,"pid_ramp_on":0,"pid_ramp_rate":0,"pid_ramp_status":0,"pid_manual_status":0,"pid_manual_out":0}
         return fakedata
