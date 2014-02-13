@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Thu Feb 13 11:53:33 2014
+# Created: Thu Feb 13 12:22:46 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -243,7 +243,7 @@ class Ui_Form(object):
         self.lineEdit_2.setGeometry(QtCore.QRect(430, 70, 113, 21))
         self.lineEdit_2.setObjectName(_fromUtf8("lineEdit_2"))
         self.lineEdit_3 = QtGui.QLineEdit(self.tabWidgetPage2)
-        self.lineEdit_3.setGeometry(QtCore.QRect(80, 110, 113, 21))
+        self.lineEdit_3.setGeometry(QtCore.QRect(70, 70, 113, 21))
         self.lineEdit_3.setObjectName(_fromUtf8("lineEdit_3"))
         self.tabWidget.addTab(self.tabWidgetPage2, _fromUtf8(""))
         self.gridLayout.addWidget(self.tabWidget, 0, 0, 1, 1)
