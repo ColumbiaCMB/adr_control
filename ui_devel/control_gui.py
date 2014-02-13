@@ -14,37 +14,53 @@ import Pyro4
 
 import sys
 
-class subplot():
+class superplot():
     # Defines a plot, contains the methods used to control and build one.
-    def __init__(self,parent,control_button):
+    def __init__(self,parent,control_buttons):
         # parent and control_button needed as arguments when initialized since connecting QObjects doesn't allow the passing of arguments.
         self.dpi = 72
         self.fig = Figure((9.1, 5.2), dpi=self.dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
-        self.axes = self.fig.add_subplot(111)
-        self.current_list=None
         self.parent=parent
-        self.control_button=control_button
         self.canvas.setParent(self.parent)
         
-    def draw(self):
-        if self.current_list!=None:
-            self.axes.cla()
-            self.axes.plot(self.current_list)
-            self.canvas.draw()
+        self.current_list=[None,None]
+        self.subplotlist=[]
+        self.control_buttons=control_buttons
         
-    def plot_toggle(self):
+        self.subplotlist.append([self.fig.add_subplot(211),self.current_list[0],control_buttons[0]])
+        self.subplotlist.append([self.fig.add_subplot(212),self.current_list[1],control_buttons[1]])
+            
+    def draw(self):
+        for subplot in self.subplotlist:
+            if subplot[1] != None:
+                subplot[0].cla()
+                subplot[0].plot(subplot[1])
+        self.canvas.draw()
+            
+    def plot_toggle1(self):
         # Plots different lists depending on what the control button orders.
         # This can be made more complex (like plotting T versus I)
-        if self.control_button.currentText()=="None":
-            self.current_list=None
-        elif self.control_button.currentText()=="Bridge Temperature":
-            self.current_list=self.parent.temp_list
-        elif self.control_button.currentText()=="Bridge Setpoint":
-            self.current_list=self.parent.bridge_setpoint_list
-        elif self.control_button.currentText()=="Magnet Current":
-            self.current_list=self.parent.magnet_current_list
+        if self.control_buttons[0].currentText()=="None":
+            self.subplotlist[0][1]=None
+        elif self.control_buttons[0].currentText()=="Bridge Temperature":
+            self.subplotlist[0][1]=self.parent.temp_list
+        elif self.control_buttons[0].currentText()=="Bridge Setpoint":
+            self.subplotlist[0][1]=self.parent.bridge_setpoint_list
+        elif self.control_buttons[0].currentText()=="Magnet Current":
+            self.subplotlist[0][1]=self.parent.magnet_current_list
+            
+    def plot_toggle2(self):
+        # Two plot_toggles are needed, since QOBject.connect can't take arguments. Otherwise, this could easily be one method.
+        if self.control_buttons[1].currentText()=="None":
+            self.subplotlist[1][1]=None
+        elif self.control_buttons[1].currentText()=="Bridge Temperature":
+            self.subplotlist[1][1]=self.parent.temp_list
+        elif self.control_buttons[1].currentText()=="Bridge Setpoint":
+            self.subplotlist[1][1]=self.parent.bridge_setpoint_list
+        elif self.control_buttons[1].currentText()=="Magnet Current":
+            self.subplotlist[1][1]=self.parent.magnet_current_list
 
 class PlotDialog(QDialog,Ui_Form):
     # Connects GUI pieces to functions. Grabs data from sim900 and updates gui.
@@ -58,11 +74,11 @@ class PlotDialog(QDialog,Ui_Form):
         self.setupLists()
         self.setupTimer()
         
-        self.plot1=subplot(self,self.plotoptions)
-        self.plotLayout.insertWidget(0,self.plot1.canvas)
+        self.plot=superplot(self,[self.plotoptions,self.plotoptions2])
+        self.plotLayout.insertWidget(0,self.plot.canvas)
         
-        self.plot2=subplot(self,self.plotoptions2)
-        self.plotLayout_2.insertWidget(0,self.plot2.canvas)
+        self.toolbar=NavigationToolbar(self.plot.canvas,self)
+        self.navbar_layout.insertWidget(0,self.toolbar)
         
         self.setupSlots()
            
@@ -74,8 +90,14 @@ class PlotDialog(QDialog,Ui_Form):
         self.timer.start(500)
         
     def setupSlots(self):
-        QObject.connect(self.plotoptions,SIGNAL("activated(const QString&)"),self.plot1.plot_toggle)
-        QObject.connect(self.plotoptions2,SIGNAL("activated(const QString&)"),self.plot2.plot_toggle)
+        QObject.connect(self.bridge_setpoint_command_value,SIGNAL("editingFinished()"),self.set_bridge_setpoint)
+        
+        QObject.connect(self.regenerate_button,SIGNAL("clicked()"), self.regenerate)
+        QObject.connect(self.regulate_button,SIGNAL("clicked()"), self.regulate)
+        QObject.connect(self.stop_button,SIGNAL("clicked()"), self.stop)
+        
+        QObject.connect(self.plotoptions,SIGNAL("activated(const QString&)"),self.plot.plot_toggle1)
+        QObject.connect(self.plotoptions2,SIGNAL("activated(const QString&)"),self.plot.plot_toggle2)
         
     def setupLists(self):
         #Create lists in which bridge-temperature and bridge-setpoint values will be stored
@@ -119,8 +141,25 @@ class PlotDialog(QDialog,Ui_Form):
             self.magnet_current_list.append(current)
             
         #Update plots by calling the draw function.
-        self.plot1.draw()
-        self.plot2.draw()
+        self.plot.draw()
+        
+        
+    def regenerate(self):
+        #Changes the Bridge Setpoint
+        self.sim900.regenerate()
+    def regulate(self):
+        #Changes the Bridge Setpoint
+        self.sim900.regulate()
+    def stop(self):
+        #Changes the Bridge Setpoint
+        self.sim900.stop()
+    def set_bridge_setpoint(self):
+        #Changes the Bridge Setpoint
+        self.sim900.stop()
+    
+    def set_bridge_setpoint(self):
+        #Changes the Bridge Setpoint
+        self.sim900.setBridgeSetpoint(self.bridge_setpoint_command_value.value())
         
         
         
