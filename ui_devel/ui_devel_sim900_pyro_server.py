@@ -5,6 +5,7 @@ import random
 class sim900Client():
     def __init__(self, hostname="localhost", port=50001):
         self.local_terminator = "\n\r"
+        self.fakedata={"bridge_temperature_setpoint":1,"bridge_temp_value":1,"therm_temperature":[0,0,0],"dvm_volts":[0,0]}
         
     def send(self,msg):
     # This is just for testing for now. Eventually it should send a command to the socket which is connected to the sim900.
@@ -15,10 +16,8 @@ class sim900Client():
     # Loads up an empty dict for now.
         self.send("read")
         btv=random.uniform(0.99,1.01)
-        fakedata={"bridge_temperature_setpoint":1,"bridge_temp_value":btv,"therm_temperature":[0,0,0],"dvm_volts":[0,0],"pid_setpoint":0,"pid_measure_mon":0,
-        "pid_error_mon":0,"pid_output_mon":0,"pid_propor_on":0,"pid_integral_on":0, "pid_deriv_on":0,"pid_offset_on":0,"pid_propor_gain":0,"pid_integral_gain":0,
-        "pid_deriv_gain":0,"pid_offset":0,"pid_ramp_on":0,"pid_ramp_rate":0,"pid_ramp_status":0,"pid_manual_status":0,"pid_manual_out":0}
-        return fakedata
+        self.fakedata["bridge_temp_value"]=btv
+        return self.fakedata
         
         
     def regulate(self):
@@ -31,6 +30,9 @@ class sim900Client():
         msg = "stop"
         self.send(msg)
     # These are placeholders for the clickbutton commands.
+    
+    def increase_current(self,current):
+        self.fakedata["dvm_volts"][1]=current
         
     def setSetpoint(self, setpoint):
         msg = "set setpoint %f" % setpoint
