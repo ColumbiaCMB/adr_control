@@ -10,7 +10,8 @@ class Superplot():
     def __init__(self,parent,control_buttons):
         # parent and control_button needed as arguments when initialized since connecting QObjects doesn't allow the passing of arguments.
         self.dpi = 72
-        self.fig = Figure((9.1, 5.2), dpi=self.dpi)
+        #self.fig = Figure((9.1, 5.2), dpi=self.dpi)
+        self.fig = Figure((12.0, 12.0), dpi=self.dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
         self.parent=parent

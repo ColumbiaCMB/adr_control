@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Thu Feb 13 12:22:46 2014
+# Created: Fri Feb 14 16:12:12 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,7 +17,7 @@ except AttributeError:
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName(_fromUtf8("Form"))
-        Form.resize(885, 566)
+        Form.resize(1138, 834)
         Form.setWindowTitle(QtGui.QApplication.translate("Form", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.gridLayout = QtGui.QGridLayout(Form)
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
@@ -25,6 +25,7 @@ class Ui_Form(object):
         self.gridLayout_3.setSizeConstraint(QtGui.QLayout.SetMaximumSize)
         self.gridLayout_3.setObjectName(_fromUtf8("gridLayout_3"))
         self.plotLayout = QtGui.QVBoxLayout()
+        self.plotLayout.setSizeConstraint(QtGui.QLayout.SetMaximumSize)
         self.plotLayout.setObjectName(_fromUtf8("plotLayout"))
         spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.plotLayout.addItem(spacerItem)

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>885</width>
-    <height>566</height>
+    <width>1138</width>
+    <height>834</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -21,6 +21,9 @@
      </property>
      <item row="2" column="1">
       <layout class="QVBoxLayout" name="plotLayout">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetMaximumSize</enum>
+       </property>
        <item>
         <spacer name="verticalSpacer_2">
          <property name="orientation">
@@ -140,7 +143,7 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="tabWidgetPage1" native="true">
+     <widget class="QWidget" name="tabWidgetPage1">
       <attribute name="title">
        <string>Main Tab</string>
       </attribute>
@@ -410,7 +413,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tabWidgetPage2" native="true">
+     <widget class="QWidget" name="tabWidgetPage2">
       <attribute name="title">
        <string>Other tabs go here</string>
       </attribute>
