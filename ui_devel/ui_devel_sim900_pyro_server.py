@@ -31,7 +31,7 @@ class sim900Client():
         self.send(msg)
     # These are placeholders for the clickbutton commands.
     
-    def increase_current(self,current):
+    def set_current(self,current):
         self.fakedata["dvm_volts"][1]=current
         
     def setSetpoint(self, setpoint):

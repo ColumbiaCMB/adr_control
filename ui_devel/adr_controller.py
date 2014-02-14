@@ -13,6 +13,7 @@ class AdrController():
         self.state=startup_state
         # Sets the current state. Standby by default.
         self.client=client
+        self.data=self.client.fetchDict()
         self.mag_goal=None
         self.loop_thread=None
         
@@ -30,13 +31,50 @@ class AdrController():
         self.loop_thread.daemon=True
         self.loop_thread.start()
         
+    def request_standby(self):
+        #make sure current is zero
+        # make sure no PID
+        if self.data["dvm_volts"][1]!=0:
+            print "Set magnet current to zero before standby."
+            return
+            # use exceptions here instead?
+        self.state="standby"
+    
+    def request_mag_up(self):
+        # Makes sure current is not at max
+        # asks for ramp rate
+        # asks for max current
+        if self.data["dvm_volts"][1]>=9.4:
+            print "current already at max"
+            return
+        self.state="mag_up"
+    
+    def request_dwell(self):
+        # makes sure system is in dwellable state.
+        self.state="dwell"
+    def request_mag_down(self):
+        # makes sure current is not at min
+        # ramp rate
+        # min current
+        if self.data["dvm_volts"][1]<=0.0:
+            print "current already at min"
+            return
+        self.state="mag_down"
+    
+    def request_regulate(self):
+        # makes sure system is in standby
+        # engages PID
+        # if current goes below some value (0.15) end regulation (this should actually be in function_loop)
+        self.state="regulate"
+        
+    
     def function_loop(self):
         while True:
             if self.exit==True:
                 return 0
-            data=self.client.fetchDict()
-            mag_current = data["dvm_volts"][1]
-            temp = data["bridge_temp_value"]
+            self.data=self.client.fetchDict()
+            mag_current = self.data["dvm_volts"][1]
+            temp = self.data["bridge_temp_value"]
             
             if self.state=="standby":
                 self.client.stop()
@@ -47,10 +85,19 @@ class AdrController():
             if self.state=="mag_up":
                 if temp>6:
                     return
+                    # Should I use exception try/catch here instead of just returning?
                 if mag_current<9.4:
-                    self.client.increase_current(mag_current+0.1)
+                    self.client.set_current(mag_current+0.1)
                 if mag_current>=9.4:
                     self.state="dwell"
+            if self.state=="mag_down":
+                if temp>6:
+                    return
+                    # Should I use exception try/catch here instead of just returning?
+                if mag_current>0.0:
+                    self.client.set_current(mag_current-0.1)
+                if mag_current<=0.0:
+                    self.state="standby"
             if self.state=="dwell":
                 #make sure nothing is varying wildly.
                 pass
