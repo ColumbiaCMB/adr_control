@@ -57,6 +57,7 @@ class PlotDialog(QDialog,Ui_Form):
         self.temp_list = []
         self.bridge_setpoint_list = []
         self.magnet_current_list=[]
+        self.time_list=[]
         
     def update(self):
         data = self.sim900.fetchDict()
@@ -75,23 +76,29 @@ class PlotDialog(QDialog,Ui_Form):
         self.magnet_voltage_value.setText(str(voltage))
         
         #Update Temperature and Setpoint Lists
-        if len(self.temp_list) < 500:
+        if len(self.temp_list) < 50:
             self.temp_list.append(temp_bridge)
-        elif len(self.temp_list) >= 500:
+        elif len(self.temp_list) >= 50:
             del self.temp_list[0]
             self.temp_list.append(temp_bridge)
 
-        if len(self.bridge_setpoint_list) < 500:
+        if len(self.bridge_setpoint_list) < 50:
             self.bridge_setpoint_list.append(bridge_setpoint)
-        elif len(self.bridge_setpoint_list) >= 500:
+        elif len(self.bridge_setpoint_list) >= 50:
             del self.bridge_setpoint_list[0]
             self.bridge_setpoint_list.append(bridge_setpoint)
             
-        if len(self.magnet_current_list) < 500:
+        if len(self.magnet_current_list) < 50:
             self.magnet_current_list.append(current)
-        elif len(self.magnet_current_list) >= 500:
+        elif len(self.magnet_current_list) >= 50:
             del self.magnet_current_list[0]
             self.magnet_current_list.append(current)
+            
+        if len(self.time_list) < 50:
+            self.time_list.append(data["time"])
+        elif len(self.time_list) >= 50:
+            del self.time_list[0]
+            self.time_list.append(data["time"])
             
         #Update plots by calling the draw function.
         self.plot.draw()

@@ -1,11 +1,13 @@
 import Pyro4
 import simplejson as json
 import random
+import time
 
 class sim900Client():
     def __init__(self, hostname="localhost", port=50001):
         self.local_terminator = "\n\r"
-        self.fakedata={"bridge_temperature_setpoint":1,"bridge_temp_value":1,"therm_temperature":[0,0,0],"dvm_volts":[0,0]}
+        self.fakedata={"time":0,"bridge_temperature_setpoint":1,"bridge_temp_value":1,"therm_temperature":[0,0,0],"dvm_volts":[0,0]}
+        self.start_time=time.time()
         
     def send(self,msg):
     # This is just for testing for now. Eventually it should send a command to the socket which is connected to the sim900.
@@ -14,9 +16,11 @@ class sim900Client():
         
     def fetchDict(self):
     # Loads up an empty dict for now.
+        tic=time.time()
         self.send("read")
         btv=random.uniform(0.99,1.01)
         self.fakedata["bridge_temp_value"]=btv
+        self.fakedata["time"]=tic-self.start_time
         return self.fakedata
         
         

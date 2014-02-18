@@ -28,7 +28,9 @@ class Superplot():
         for subplot in self.subplotlist:
             if subplot[1] != None:
                 subplot[0].cla()
-                subplot[0].plot(subplot[1])
+                #subplot[0].plot(subplot[1])
+                subplot[0].plot(self.parent.time_list,subplot[1])
+                # I think this may have broken something.
         self.canvas.draw()
             
     def plot_toggle1(self):
