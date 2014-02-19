@@ -34,16 +34,17 @@ class CleanSocket():
         
         try:
             sock.connect(self.address)
-        except:
-            print "Socket unable to connect."
-            return
+        except socket.error:
+            print "Socket unable to connect. Check that no other sockets are connected."
+            raise
+            # Instead of returning None here, raise an exception. Ditto for other parts of this code.
             
         try:
             sock.send(msg+terminator)
         except:
             print "socket unable to send message"
             sock.close()
-            return
+            raise
             
         time.sleep(0.1)
         
@@ -51,6 +52,7 @@ class CleanSocket():
             data = sock.recv(1024)
         except:
             print "Nothing received"
+            raise
         finally:
             sock.close()
             return data
@@ -59,14 +61,95 @@ class CleanSocket():
     def query_port(self,port, msg, terminator='\r\n'):
         # For easy talking to ports. Sends the question, then retrieves the answer with GETN command to port.
         # Good test: port=3, msg='*IDN?'
+        
         format_msg='SNDT %d, "%s"' % (port,msg)
-        recv_msg='GETN? %d,100' % (port)
         self.send(format_msg)
-        time.sleep(1)
-        print recv_msg
-        return self.send_and_receive(recv_msg)
+        # Sends the message
+        
+        time.sleep(0.1)
+        # Problem: without this sleep query_loop finds (empty data #3000) before the sim900 has a chance to process the new query.
+        # Is the sim900 a stack so we have >sndt >getn ... getn> sndt>?
+        
+        # Another problem: the amount of time it takes for the sim900 to give an output changes depending on what you're asking.
+        
+        self.query_loop(port)
+        # looks for data on that port.
         
         
+    def query_loop(self,port,terminator='\r\n'):
+        sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        
+        try:
+            sock.connect(self.address)
+            sock.setblocking(0)
+        except socket.error:
+            print "Socket unable to connect. Check that no other sockets are connected."
+            raise
+            # Instead of returning None here, raise an exception. Ditto for other parts of this code.
+            
+        try:
+            msg='GETN? %d,100' % (port)
+            sock.send(msg+terminator)
+        except:
+            print "socket unable to send message"
+            sock.close()
+            raise
+            
+        start=time.time()
+        tic=time.time()
+        # For manually limiting the time for my while loop
+        
+        data=''
+        new_data=None
+        # data comes in strings. Starts an empty string and sets new_data to None.
+        
+        expected_data_length=5
+        has_extended=False
+        # How long should data be, and whether we have adjusted the length based on the data it gives us.
+        
+        while (tic-start<2) and (len(data)<expected_data_length):
+        # This loop constantly looks for new data until 2 seconds have passed, or the data has at least 4 characters.
+        # Note that data from the sim900 will ALWAYS have at least 5 characters: #30xx where xx is the amount of bytes of data
+        # following the intro.
+        
+        # Now... adjust the length requirement based on the xx.
+         
+            print tic-start
+            try:
+                new_data=sock.recv(1024)
+            except:
+                #catches timeout, but that isn't an error python recognizes, so I can't refer to it by name...
+                # would be good to not catch all errors, just timeout.
+                print 'no data'
+                new_data=None
+                # If new data hasn't come in, there is no new data.
+                
+            if new_data != None:
+                data+=new_data
+                # Add new data to total data if there is is new data.
+                
+            if (has_extended==False) and (len(data)>=5):
+                expected_data_length+=int(data[2:5])
+                # These digits of data describe the length of the data. Add this number to the data length we're expecting.
+                has_extended=True
+                # We only want to do this once.W
+                
+                
+            print data
+            tic=time.time()
+            
+        sock.close()
+        return data
+        
+    def get_data(self):
+        self.send('SNDT 1, "TVAL?"'+'\r\n')
+        # Bridge Temperature
+        self.send('SNDT 5, "TVAL? 1"'+'\r\n')
+        self.send('SNDT 5, "TVAL? 3"'+'\r\n')
+        # 50K and 4K stage temperatures top to bottom
+        self.send('SNDT 7, "VOLT? 1"'+'\r\n')
+        self.send('SNDT 7, "VOLT? 2"'+'\r\n')
+        # Mag V and Mag I top to bottom.
         
         
         
