@@ -58,6 +58,27 @@ class CleanSocket():
             return data
         
             
+    def interpret(self,port,timeout=2):
+        # grabs data using query_loop
+        # runs until timeout or terminator reached (\r\n)
+        # discards #3xxx, concatenates middle into a string.
+        # Should discard ending as well, but not doing so reveal some interesting information about how the sim900 works.
+        
+        accumulated_data=''
+        terminator_flag=False
+        start=time.time()
+        tic=time.time()
+        
+        while terminator_flag==False and tic-start<timeout:
+            data=self.query_loop(port)
+            for i in range(5,len(data)):
+                accumulated_data+=data[i]
+                if data[i]=='\r':
+                    terminator_flag=True
+            tic=time.time()
+        return accumulated_data
+        
+            
     def query_port(self,port, msg, terminator='\r\n'):
         # For easy talking to ports. Sends the question, then retrieves the answer with GETN command to port.
         # Good test: port=3, msg='*IDN?'
@@ -66,14 +87,26 @@ class CleanSocket():
         self.send(format_msg)
         # Sends the message
         
-        time.sleep(0.1)
+        #time.sleep(0.1)
         # Problem: without this sleep query_loop finds (empty data #3000) before the sim900 has a chance to process the new query.
         # Is the sim900 a stack so we have >sndt >getn ... getn> sndt>?
-        
         # Another problem: the amount of time it takes for the sim900 to give an output changes depending on what you're asking.
         
-        self.query_loop(port)
-        # looks for data on that port.
+        '''data='#3000'
+        # This is our null result, and we initialize it to this value.
+        start=time.time()
+        tic=time.time()
+        
+        while (data[:5] == '#3000') and (tic-start<2):
+            # This assumes we will NOT get an empty result back and forces our program to look until
+            # time runs out or we find a non-empty answer.
+            data=self.query_loop(port)
+            tic=time.time()
+            
+        # Problem: sim writes slowly, each time updating the number of bytes. This means we often get a partial answer.
+        # Solutions: check back a couple times to see if any more data is in the buffer?'''
+        
+        return self.interpret(port)
         
         
     def query_loop(self,port,terminator='\r\n'):
@@ -109,18 +142,23 @@ class CleanSocket():
         
         while (tic-start<2) and (len(data)<expected_data_length):
         # This loop constantly looks for new data until 2 seconds have passed, or the data has at least 4 characters.
-        # Note that data from the sim900 will ALWAYS have at least 5 characters: #30xx where xx is the amount of bytes of data
+        # Note that data from the sim900 will ALWAYS have at least 5 characters: #3xxx where xx is the amount of bytes of data
         # following the intro.
         
-        # Now... adjust the length requirement based on the xx.
+        # Now... adjust the length requirement based on the xxx.
          
-            print tic-start
+            # print tic-start
+            # for debugging
+            
             try:
                 new_data=sock.recv(1024)
             except:
                 #catches timeout, but that isn't an error python recognizes, so I can't refer to it by name...
                 # would be good to not catch all errors, just timeout.
-                print 'no data'
+                
+                #print 'no data'
+                #for debugging
+                
                 new_data=None
                 # If new data hasn't come in, there is no new data.
                 
@@ -132,10 +170,12 @@ class CleanSocket():
                 expected_data_length+=int(data[2:5])
                 # These digits of data describe the length of the data. Add this number to the data length we're expecting.
                 has_extended=True
-                # We only want to do this once.W
+                # We only want to do this once.
                 
                 
-            print data
+            #print data
+            #for debugging
+            
             tic=time.time()
             
         sock.close()
