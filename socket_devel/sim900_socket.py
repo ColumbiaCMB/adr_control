@@ -57,28 +57,55 @@ class CleanSocket():
             sock.close()
             return data
         
-            
-    def interpret(self,port,timeout=2):
-        # grabs data using query_loop
-        # runs until timeout or terminator reached (\r\n)
-        # discards #3xxx, concatenates middle into a string.
-        # Should discard ending as well, but not doing so reveal some interesting information about how the sim900 works.
         
-        accumulated_data=''
-        terminator_flag=False
+    def decode(self,raw):
+        if raw[:2]=='#3':
+        # makes sure the string is formatted in the way we expect
+            byte_no=int(raw[2:5])
+            
+            if len(raw)!=(5+byte_no+1):
+                mismatch=1
+                print raw
+            else:
+                mismatch=0
+            # This is just for checking out how often we get strings that aren't formatted how we would expect.
+            
+            return (raw[5:(5+byte_no)], mismatch)
+            # We check how many bytes to expect, then  grab that many characters after the header.
+            # Needs error checking in case there aren't actually that many bytes.
+            
+            # For lab use, this doesn't need to be a tuple. Mismatch is just for checking how often we see 
+            
+        else:
+            print 'Input not formatted #3.....'
+            
+    def query(self,port,timeout=2):
+        
+        data=''
         start=time.time()
         tic=time.time()
+        mismatch_total=0
         
-        while terminator_flag==False and tic-start<timeout:
-            data=self.query_loop(port)
-            for i in range(5,len(data)):
-                accumulated_data+=data[i]
-                if data[i]=='\r':
-                    terminator_flag=True
-            tic=time.time()
-        return accumulated_data
-        
+        while tic-start<timeout:
+            raw_data=self.query_loop(port)
+            (payload,mismatch)=self.decode(raw_data)
+            data+=payload
+            mismatch_total+=mismatch
             
+            tic=time.time()
+            
+            index=data.find('\r\n')
+            
+            if index >= 0:
+                print
+                print 'query took %f sec' % (tic-start)
+                print 'there were %d strings of unexpected length' % (mismatch_total)
+                print
+                return data[:index]
+            
+        print 'query timed out'
+        return data
+        
     def query_port(self,port, msg, terminator='\r\n'):
         # For easy talking to ports. Sends the question, then retrieves the answer with GETN command to port.
         # Good test: port=3, msg='*IDN?'
@@ -87,26 +114,8 @@ class CleanSocket():
         self.send(format_msg)
         # Sends the message
         
-        #time.sleep(0.1)
-        # Problem: without this sleep query_loop finds (empty data #3000) before the sim900 has a chance to process the new query.
-        # Is the sim900 a stack so we have >sndt >getn ... getn> sndt>?
-        # Another problem: the amount of time it takes for the sim900 to give an output changes depending on what you're asking.
-        
-        '''data='#3000'
-        # This is our null result, and we initialize it to this value.
-        start=time.time()
-        tic=time.time()
-        
-        while (data[:5] == '#3000') and (tic-start<2):
-            # This assumes we will NOT get an empty result back and forces our program to look until
-            # time runs out or we find a non-empty answer.
-            data=self.query_loop(port)
-            tic=time.time()
-            
-        # Problem: sim writes slowly, each time updating the number of bytes. This means we often get a partial answer.
-        # Solutions: check back a couple times to see if any more data is in the buffer?'''
-        
-        return self.interpret(port)
+        return self.query(port)
+        # Gets the response
         
         
     def query_loop(self,port,terminator='\r\n'):
@@ -128,9 +137,7 @@ class CleanSocket():
             sock.close()
             raise
             
-        start=time.time()
-        tic=time.time()
-        # For manually limiting the time for my while loop
+        
         
         data=''
         new_data=None
@@ -139,6 +146,10 @@ class CleanSocket():
         expected_data_length=5
         has_extended=False
         # How long should data be, and whether we have adjusted the length based on the data it gives us.
+        
+        start=time.time()
+        tic=time.time()
+        # For manually limiting the time for my while loop
         
         while (tic-start<2) and (len(data)<expected_data_length):
         # This loop constantly looks for new data until 2 seconds have passed, or the data has at least 4 characters.
@@ -178,45 +189,28 @@ class CleanSocket():
             
             tic=time.time()
             
+        print "query_loop took %f sec" % (tic-start)
         sock.close()
         return data
         
     def get_data(self):
-        self.send('SNDT 1, "TVAL?"'+'\r\n')
-        # Bridge Temperature
-        self.send('SNDT 5, "TVAL? 1"'+'\r\n')
-        self.send('SNDT 5, "TVAL? 3"'+'\r\n')
-        # 50K and 4K stage temperatures top to bottom
-        self.send('SNDT 7, "VOLT? 1"'+'\r\n')
-        self.send('SNDT 7, "VOLT? 2"'+'\r\n')
-        # Mag V and Mag I top to bottom.
+    
+        data_dict={}
         
+        start=time.time()
+    
+        data_dict['bridge_temp']=self.query_port(1, 'TVAL?')
+        # Bridge temperature
+        data_dict['50k_temp']=self.query_port(5, 'TVAL? 1')
+        data_dict['4k_temp']=self.query_port(5, 'TVAL? 3')
+        # 50K and 4K stage temperature top to bottom.
+        data_dict['mag_volt']=self.query_port(7, 'VOLT? 1')
+        data_dict['mag_current']=self.query_port(7, 'VOLT? 2')
+        # Mag V and Mag I top to bottom
         
+        tic=time.time()
+        print "get_data took %f sec" % (tic-start)
         
+        # Added a bunch of timing functions in here. They can be removed.
         
-        
-        
-        
-        
-        
-        
-        
-
-class socketClass():
-    def __init__(self):
-        self.host="192.168.1.151"
-        self.port=4001
-        self.address=(self.host,self.port)
-        self.sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.sock.settimeout(2)
-        self.sock.connect(self.address)
-        self.terminator="\r\n"
-        
-    def send_get(self,msg):
-        self.sock.send(msg)
-        time.sleep(0.1)
-        # Necessary to let the sim900 send back. Otherwise, it just gets the first character.
-        return self.sock.recv(1024)
-        
-    def close_socket(self):
-        self.sock.close()
+        return data_dict
