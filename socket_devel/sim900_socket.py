@@ -2,19 +2,20 @@ import socket
 import time
 
 class CleanSocket():
-    def __init__(self):
+    def __init__(self, debug=False):
         self.host="192.168.1.151"
         self.port=4001
         self.address=(self.host,self.port)
+        self.debug_flag=debug
         
     def send(self,msg,terminator='\r\n'):
         sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         
         try:
             sock.connect(self.address)
-        except:
+        except socket.error:
             print "Socket unable to connect."
-            return
+            raise
             
         
         try:
@@ -63,18 +64,23 @@ class CleanSocket():
         # makes sure the string is formatted in the way we expect
             byte_no=int(raw[2:5])
             
-            if len(raw)!=(5+byte_no+1):
-                mismatch=1
-                print raw
+            if len(raw)<5+byte_no:
+                # Problem, some data has gone missing
+                print "Error: missing data in "+raw
+            
+            if self.debug_flag==True:
+                if len(raw)!=(5+byte_no+1):
+                    mismatch=1
+                    print raw
+                else:
+                    mismatch=0
+                # This is just for checking out how often we get strings that aren't formatted how we would expect.
+                
+                return (raw[5:(5+byte_no)], mismatch)
+                # We check how many bytes to expect, then  grab that many characters after the header.
+                # Needs error checking in case there aren't actually that many bytes.
             else:
-                mismatch=0
-            # This is just for checking out how often we get strings that aren't formatted how we would expect.
-            
-            return (raw[5:(5+byte_no)], mismatch)
-            # We check how many bytes to expect, then  grab that many characters after the header.
-            # Needs error checking in case there aren't actually that many bytes.
-            
-            # For lab use, this doesn't need to be a tuple. Mismatch is just for checking how often we see 
+                return raw[5:(5+byte_no)]
             
         else:
             print 'Input not formatted #3.....'
@@ -88,25 +94,33 @@ class CleanSocket():
         
         while tic-start<timeout:
             raw_data=self.query_loop(port)
-            (payload,mismatch)=self.decode(raw_data)
+            
+            if self.debug_flag==True:
+                (payload,mismatch)=self.decode(raw_data)
+                mismatch_total+=mismatch
+            else:
+                payload=self.decode(raw_data)
+            
             data+=payload
-            mismatch_total+=mismatch
             
             tic=time.time()
             
             index=data.find('\r\n')
             
             if index >= 0:
-                print
-                print 'query took %f sec' % (tic-start)
-                print 'there were %d strings of unexpected length' % (mismatch_total)
-                print
+            
+                if self.debug_flag==True:
+                    print
+                    print 'query took %f sec' % (tic-start)
+                    print 'there were %d strings of unexpected length' % (mismatch_total)
+                    print
+                
                 return data[:index]
             
         print 'query timed out'
         return data
         
-    def query_port(self,port, msg, terminator='\r\n'):
+    def query_port(self,port, msg):
         # For easy talking to ports. Sends the question, then retrieves the answer with GETN command to port.
         # Good test: port=3, msg='*IDN?'
         
@@ -127,7 +141,6 @@ class CleanSocket():
         except socket.error:
             print "Socket unable to connect. Check that no other sockets are connected."
             raise
-            # Instead of returning None here, raise an exception. Ditto for other parts of this code.
             
         try:
             msg='GETN? %d,100' % (port)
@@ -157,18 +170,12 @@ class CleanSocket():
         # following the intro.
         
         # Now... adjust the length requirement based on the xxx.
-         
-            # print tic-start
-            # for debugging
             
             try:
                 new_data=sock.recv(1024)
             except:
                 #catches timeout, but that isn't an error python recognizes, so I can't refer to it by name...
                 # would be good to not catch all errors, just timeout.
-                
-                #print 'no data'
-                #for debugging
                 
                 new_data=None
                 # If new data hasn't come in, there is no new data.
@@ -182,14 +189,12 @@ class CleanSocket():
                 # These digits of data describe the length of the data. Add this number to the data length we're expecting.
                 has_extended=True
                 # We only want to do this once.
-                
-                
-            #print data
-            #for debugging
             
             tic=time.time()
             
-        print "query_loop took %f sec" % (tic-start)
+            
+        if self.debug_flag==True:
+            print "query_loop took %f sec" % (tic-start)
         sock.close()
         return data
         
@@ -209,7 +214,8 @@ class CleanSocket():
         # Mag V and Mag I top to bottom
         
         tic=time.time()
-        print "get_data took %f sec" % (tic-start)
+        if self.debug_flag==True:
+            print "get_data took %f sec" % (tic-start)
         
         # Added a bunch of timing functions in here. They can be removed.
         
