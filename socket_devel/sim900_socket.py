@@ -62,7 +62,12 @@ class CleanSocket():
     def decode(self,raw):
         if raw[:2]=='#3':
         # makes sure the string is formatted in the way we expect
-            byte_no=int(raw[2:5])
+        
+            try:
+                byte_no=int(raw[2:5])
+            except ValueError:
+                print raw[2:5] + ' is not an int. Adding empty string.'
+                return ''
             
             if len(raw)<5+byte_no:
                 # Problem, some data has gone missing
@@ -137,6 +142,13 @@ class CleanSocket():
         
         try:
             sock.connect(self.address)
+            
+            ### trying to prevent refused connections
+            #sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+            ###
+            
+            # This did not solve the problems. Python also doesn't seem to have the REUSE_PORT option.
+            
             sock.setblocking(0)
         except socket.error:
             print "Socket unable to connect. Check that no other sockets are connected."
@@ -162,14 +174,12 @@ class CleanSocket():
         
         start=time.time()
         tic=time.time()
-        # For manually limiting the time for my while loop
+        # For the timeout
         
         while (tic-start<2) and (len(data)<expected_data_length):
         # This loop constantly looks for new data until 2 seconds have passed, or the data has at least 4 characters.
         # Note that data from the sim900 will ALWAYS have at least 5 characters: #3xxx where xx is the amount of bytes of data
         # following the intro.
-        
-        # Now... adjust the length requirement based on the xxx.
             
             try:
                 new_data=sock.recv(1024)

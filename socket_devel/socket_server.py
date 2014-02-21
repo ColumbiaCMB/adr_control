@@ -2,7 +2,7 @@ import Pyro4
 import simplejson as json
 import random
 import time
-import sim900_socket
+import locked_sim900_socket
 import threading
 
 class sim900Client():
@@ -13,7 +13,10 @@ class sim900Client():
         self.local_terminator = "\n\r"
         self.data={"time":0,"bridge_temperature_setpoint":1,"bridge_temp_value":1,"therm_temperature":[0,0,0],"dvm_volts":[0,0]}
         self.start_time=time.time()
-        self.sock=sim900_socket.CleanSocket()
+        
+        self.lock=threading.Lock()
+        self.sock=locked_sim900_socket.CleanSocket(self.lock)
+        
         
         self.loop_thread=None
         self.start_loop_thread()
@@ -37,9 +40,14 @@ class sim900Client():
             #time.sleep(.5)
             
     def load_data(self):
-    # Loads up an empty dict for now.
+    
         tic=time.time()
+        
         new_data=self.sock.get_data()
+        
+        toc=time.time()
+        print toc-tic
+        
         self.data["time"]=tic-self.start_time
         self.data["bridge_temp_value"]=new_data['bridge_temp']
         self.data["therm_temperature"][0]=new_data['50k_temp']
@@ -52,6 +60,7 @@ class sim900Client():
         
     def send(self,msg):
         # Note that this method has no error checking to make sure the command is valid. That needs to happen before this method is called.
+        
         self.sock.send(msg)
         
     def regenerate(self):
