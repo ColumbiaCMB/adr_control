@@ -46,6 +46,7 @@ class PlotDialog(QDialog,Ui_Form):
         #The timeout is connected to the update function
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
+        #self.timer.start(364)
         self.timer.start(1000)
         
     def setupSlots(self):

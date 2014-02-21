@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Fri Feb 14 16:12:12 2014
+# Created: Fri Feb 21 16:51:30 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -40,24 +40,20 @@ class Ui_Form(object):
         self.plotoptions = QtGui.QComboBox(Form)
         self.plotoptions.setObjectName(_fromUtf8("plotoptions"))
         self.plotoptions.addItem(_fromUtf8(""))
-        self.plotoptions.setItemText(0, QtGui.QApplication.translate("Form", "None", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions.setItemText(0, QtGui.QApplication.translate("Form", "Pause", None, QtGui.QApplication.UnicodeUTF8))
         self.plotoptions.addItem(_fromUtf8(""))
         self.plotoptions.setItemText(1, QtGui.QApplication.translate("Form", "Bridge Temperature", None, QtGui.QApplication.UnicodeUTF8))
         self.plotoptions.addItem(_fromUtf8(""))
-        self.plotoptions.setItemText(2, QtGui.QApplication.translate("Form", "Bridge Setpoint", None, QtGui.QApplication.UnicodeUTF8))
-        self.plotoptions.addItem(_fromUtf8(""))
-        self.plotoptions.setItemText(3, QtGui.QApplication.translate("Form", "Magnet Current", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions.setItemText(2, QtGui.QApplication.translate("Form", "Magnet Current", None, QtGui.QApplication.UnicodeUTF8))
         self.verticalLayout_9.addWidget(self.plotoptions)
         self.plotoptions2 = QtGui.QComboBox(Form)
         self.plotoptions2.setObjectName(_fromUtf8("plotoptions2"))
         self.plotoptions2.addItem(_fromUtf8(""))
-        self.plotoptions2.setItemText(0, QtGui.QApplication.translate("Form", "None", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions2.setItemText(0, QtGui.QApplication.translate("Form", "Pause", None, QtGui.QApplication.UnicodeUTF8))
         self.plotoptions2.addItem(_fromUtf8(""))
         self.plotoptions2.setItemText(1, QtGui.QApplication.translate("Form", "Bridge Temperature", None, QtGui.QApplication.UnicodeUTF8))
         self.plotoptions2.addItem(_fromUtf8(""))
-        self.plotoptions2.setItemText(2, QtGui.QApplication.translate("Form", "Bridge Setpoint", None, QtGui.QApplication.UnicodeUTF8))
-        self.plotoptions2.addItem(_fromUtf8(""))
-        self.plotoptions2.setItemText(3, QtGui.QApplication.translate("Form", "Magnet Current", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions2.setItemText(2, QtGui.QApplication.translate("Form", "Magnet Current", None, QtGui.QApplication.UnicodeUTF8))
         self.verticalLayout_9.addWidget(self.plotoptions2)
         self.gridLayout_3.addLayout(self.verticalLayout_9, 2, 0, 1, 1)
         self.label = QtGui.QLabel(Form)

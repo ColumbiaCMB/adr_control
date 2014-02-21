@@ -61,17 +61,12 @@
         <widget class="QComboBox" name="plotoptions">
          <item>
           <property name="text">
-           <string>None</string>
+           <string>Pause</string>
           </property>
          </item>
          <item>
           <property name="text">
            <string>Bridge Temperature</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Bridge Setpoint</string>
           </property>
          </item>
          <item>
@@ -85,17 +80,12 @@
         <widget class="QComboBox" name="plotoptions2">
          <item>
           <property name="text">
-           <string>None</string>
+           <string>Pause</string>
           </property>
          </item>
          <item>
           <property name="text">
            <string>Bridge Temperature</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Bridge Setpoint</string>
           </property>
          </item>
          <item>

@@ -28,30 +28,29 @@ class Superplot():
         for subplot in self.subplotlist:
             if subplot[1] != None:
                 subplot[0].cla()
-                #subplot[0].plot(subplot[1])
-                subplot[0].plot(self.parent.time_list,subplot[1])
-                # I think this may have broken something.
+                if subplot[1]==self.parent.temp_list:
+                    subplot[0].plot(self.parent.time_list,subplot[1],self.parent.time_list,self.parent.bridge_setpoint_list)
+                    # Plots temperature and bridge_setpoint together.
+                else:
+                    subplot[0].plot(self.parent.time_list,subplot[1])
+                    # Plots the current list along with just time.
         self.canvas.draw()
             
     def plot_toggle1(self):
         # Plots different lists depending on what the control button orders.
         # This can be made more complex (like plotting T versus I)
-        if self.control_buttons[0].currentText()=="None":
+        if self.control_buttons[0].currentText()=="Pause":
             self.subplotlist[0][1]=None
         elif self.control_buttons[0].currentText()=="Bridge Temperature":
             self.subplotlist[0][1]=self.parent.temp_list
-        elif self.control_buttons[0].currentText()=="Bridge Setpoint":
-            self.subplotlist[0][1]=self.parent.bridge_setpoint_list
         elif self.control_buttons[0].currentText()=="Magnet Current":
             self.subplotlist[0][1]=self.parent.magnet_current_list
             
     def plot_toggle2(self):
         # Two plot_toggles are needed, since QOBject.connect can't take arguments. Otherwise, this could easily be one method.
-        if self.control_buttons[1].currentText()=="None":
+        if self.control_buttons[1].currentText()=="Pause":
             self.subplotlist[1][1]=None
         elif self.control_buttons[1].currentText()=="Bridge Temperature":
             self.subplotlist[1][1]=self.parent.temp_list
-        elif self.control_buttons[1].currentText()=="Bridge Setpoint":
-            self.subplotlist[1][1]=self.parent.bridge_setpoint_list
         elif self.control_buttons[1].currentText()=="Magnet Current":
             self.subplotlist[1][1]=self.parent.magnet_current_list
