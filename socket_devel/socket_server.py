@@ -36,7 +36,6 @@ class sim900Client():
     def load_loop(self):
         while True:
             self.load_data()
-            print self.data
             #time.sleep(.5)
             
     def load_data(self):
@@ -46,7 +45,7 @@ class sim900Client():
         new_data=self.sock.get_data()
         
         toc=time.time()
-        print toc-tic
+        #print toc-tic
         
         self.data["time"]=tic-self.start_time
         self.data["bridge_temp_value"]=new_data['bridge_temp']
