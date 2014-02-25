@@ -3,14 +3,73 @@ import time
 import sim900_communicator
 import threading
 
-generic_command_dictionary={
+'''generic_command_dictionary={
                                     1:
                                         [{'command':'TVAL?','name':'bridge_temp','scaling':1.0}],
                                     5:
                                         [{'command':'TVAL? 1','name':'50k_temp','scaling':1.0},{'command':'TVAL? 3','name':'4k_temp','scaling':1.0}],
                                     7:
                                         [{'command':'VOLT? 1','name':'mag_volt','scaling':1.0},{'command':'VOLT? 2','name':'mag_current','scaling':1.0}]
+                                }'''
+generic_command_dictionary={
+                                    1:
+                                        [
+                                        {'command':'TVAL?','name':'bridge_temp_value','scaling':1.0},
+                                        {'command':'TDEV?','name':'bridge_temp_deviation','scaling':1.0},
+                                        {'command':'RVAL?','name':'bridge_res_value','scaling':1.0},
+                                        {'command':'RDEV?','name':'bridge_res_deviation','scaling':1.0},
+                                        {'command':'PHAS?','name':'bridge_phase','scaling':1.0},
+                                        {'command':'FREQ?','name':'bridge_frequency','scaling':1.0},
+                                        {'command':'RANG?','name':'bridge_range','scaling':1.0},
+                                        {'command':'EXCI?','name':'bridge_excitation','scaling':1.0},
+                                        {'command':'EXON?','name':'bridge_excitation_on','scaling':1.0},
+                                        {'command':'MODE?','name':'bridge_excitation_mode','scaling':1.0},
+                                        {'command':'IEXC?','name':'bridge_excitation_current','scaling':1.0},
+                                        {'command':'VEXC?','name':'bridge_excitation_volt','scaling':1.0},
+                                        {'command':'ATEM?','name':'bridge_output_temperature','scaling':1.0},
+                                        {'command':'RSET?','name':'bridge_res_setpoint','scaling':1.0},
+                                        {'command':'TSET?','name':'bridge_temperature_setpoint','scaling':1.0},
+                                        {'command':'VOHM?','name':'bridge_volts_ohms','scaling':1.0},
+                                        {'command':'VKEL?','name':'bridge_volts_kelvin','scaling':1.0},
+                                        {'command':'AMAN?','name':'bridge_output_mode','scaling':1.0},
+                                        {'command':'AOUT?','name':'bridge_output_value','scaling':1.0}
+                                        ],
+                                    3:
+                                        [
+                                        {'command':'SMON?','name':'pid_setpoint_mon','scaling':1.0},
+                                        {'command':'SETP?','name':'pid_setpoint','scaling':1.0},
+                                        {'command':'MMON?','name':'pid_measure_mon','scaling':1.0},
+                                        {'command':'EMON?','name':'pid_error_mon','scaling':1.0},
+                                        {'command':'OMON?','name':'pid_output_mon','scaling':1.0},
+                                        {'command':'PCTL?','name':'pid_propor_on','scaling':1.0},
+                                        {'command':'ICTL?','name':'pid_integral_on','scaling':1.0},
+                                        {'command':'DCTL?','name':'pid_deriv_on','scaling':1.0},
+                                        {'command':'OCTL?','name':'pid_offset_on','scaling':1.0},
+                                        {'command':'GAIN?','name':'pid_propor_gain','scaling':1.0},
+                                        {'command':'APOL?','name':'pid_polarity','scaling':1.0},
+                                        {'command':'INTG?','name':'pid_integral_gain','scaling':1.0},
+                                        {'command':'DERV?','name':'pid_deriv_gain','scaling':1.0},
+                                        {'command':'OFST?','name':'pid_offset','scaling':1.0},
+                                        {'command':'RATE?','name':'pid_ramp_rate','scaling':1.0},
+                                        {'command':'RAMP?','name':'pid_ramp_on','scaling':1.0},
+                                        {'command':'RMPS?','name':'pid_ramp_status','scaling':1.0},
+                                        {'command':'MOUT?','name':'pid_manual_out','scaling':1.0},
+                                        {'command':'AMAN?','name':'pid_manual_status','scaling':1.0}
+                                        ],
+                                    
+                                    5:
+                                        [{'command':'TVAL? 1','name':'50k_temp','scaling':1.0},{'command':'TVAL? 3','name':'4k_temp','scaling':1.0}],
+                                        
+                                    6:
+                                        [
+                                        {'command':'CHAN?','name':'mx_channel','scaling':1.0}
+                                        ]                                      
+                                    7:
+                                        [{'command':'VOLT? 1','name':'mag_volt','scaling':1.0},{'command':'VOLT? 2','name':'mag_current','scaling':1.0}]
+                                        
                                 }
+                                
+                                
 
 
 class sim900Server():
