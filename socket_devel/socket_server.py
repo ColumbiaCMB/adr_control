@@ -3,7 +3,8 @@ import time
 import locked_sim900_socket
 import threading
 
-generic_command_dictionary={   1:
+generic_command_dictionary={
+                                    1:
                                         [{'command':'TVAL?','name':'bridge_temp','scaling':1.0}],
                                     5:
                                         [{'command':'TVAL? 1','name':'50k_temp','scaling':1.0},{'command':'TVAL? 3','name':'4k_temp','scaling':1.0}],
@@ -18,7 +19,7 @@ class sim900Client():
 
     def __init__(self, command_dictionary=generic_command_dictionary, hostname="localhost", port=50001):
         self.local_terminator = "\n\r"
-        self.data={"time":0,"bridge_temperature_setpoint":1,"bridge_temp_value":1,"therm_temperature":[0,0,0],"dvm_volts":[0,0]}
+        self.data={"bridge_temperature_setpoint":0.2}
         self.start_time=time.time()
         
         self.lock=threading.Lock()
@@ -56,37 +57,14 @@ class sim900Client():
                 for j in self.command_dictionary[i]:
                 # cycles over all the commands for each port.
                     msg=j['command']
-                    result=self.locked_socket.query(port,msg)
+                    result=self.sock.query_port(port,msg)
                     self.data[j['name']]=result
                     # replace the 0.0 with whatever locked_socket.query returns. Perhaps recast as float and multiply by scaling function.
             self.data['time']=time.time()
             print self.data
             
-            time.sleep(2.0)
+            #time.sleep(1.0)
             # Take this out when connected to server.
-        
-    def load_loop(self):
-        while True:
-            self.load_data()
-            #time.sleep(.5)
-            
-   def load_data(self)
-            
-    def load_data(self):
-    
-        tic=time.time()
-        
-        new_data=self.sock.get_data()
-        
-        toc=time.time()
-        #print toc-tic
-        
-        self.data["time"]=tic-self.start_time
-        self.data["bridge_temp_value"]=new_data['bridge_temp']
-        self.data["therm_temperature"][0]=new_data['50k_temp']
-        self.data["therm_temperature"][2]=new_data['4k_temp']
-        self.data["dvm_volts"][0]=new_data['mag_volt']
-        self.data["dvm_volts"][1]=new_data['mag_current']
         
     def fetchDict(self):
         return self.data

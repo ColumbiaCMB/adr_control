@@ -1,6 +1,7 @@
 from gui import Ui_Form
 from superplot import Superplot
 import adr_controller
+import data_logger
 # Custom modules
 
 
@@ -26,6 +27,7 @@ class PlotDialog(QDialog,Ui_Form):
         self.sim900=Pyro4.Proxy("PYRONAME:sim900server")
         self.controller=adr_controller.AdrController(self,self.sim900)
         # Sets up sim900 pyro proxy and AdrController.
+        self.data_logger=data_logger.DataFile()
         
         
         self.__app = qApp
@@ -68,6 +70,8 @@ class PlotDialog(QDialog,Ui_Form):
         
     def update(self):
         data = self.sim900.fetchDict()
+        
+        self.data_logger.update(data)
         
         bridge_setpoint = data['bridge_temperature_setpoint']
         #self.bridge_setpoint_value.setText(str(bridge_setpoint))
