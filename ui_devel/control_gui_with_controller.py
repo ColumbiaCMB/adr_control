@@ -25,7 +25,7 @@ class PlotDialog(QDialog,Ui_Form):
         super(PlotDialog, self).__init__(parent)
         
         self.sim900=Pyro4.Proxy("PYRONAME:sim900server")
-        self.controller=adr_controller.AdrController(self,self.sim900)
+        self.controller=adr_controller.AdrController(self.sim900)
         # Sets up sim900 pyro proxy and AdrController.
         self.data_logger=data_logger.DataFile()
         
@@ -52,7 +52,7 @@ class PlotDialog(QDialog,Ui_Form):
         self.timer.start(1000)
         
     def setupSlots(self):
-        QObject.connect(self.bridge_setpoint_command_value,SIGNAL("editingFinished()"),self.controller.request_set_bridge_setpoint)
+        QObject.connect(self.bridge_setpoint_command_value,SIGNAL("editingFinished()"),self.set_bridge_setpoint)
         
         QObject.connect(self.regenerate_button,SIGNAL("clicked()"), self.controller.request_regenerate)
         QObject.connect(self.regulate_button,SIGNAL("clicked()"), self.controller.request_regulate)
@@ -113,6 +113,9 @@ class PlotDialog(QDialog,Ui_Form):
             
         #Update plots by calling the draw function.
         self.plot.draw()
+        
+    def set_bridge_setpoint(self):
+        self.controller.request_set_bridge_setpoint(self.bridge_setpoint_command_value.value())
         
 def main():
     app = QApplication(sys.argv)

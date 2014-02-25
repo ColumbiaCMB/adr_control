@@ -4,12 +4,11 @@ import time
 import Pyro4
 
 class AdrController():
-    def __init__(self,parent,client,startup_state="standby"):
+    def __init__(self,client,startup_state="standby"):
         self.exit=False
         self.state=startup_state
         # Sets the current state. Standby by default.
         
-        self.parent=parent
         self.client=client
         self.data=self.client.fetchDict()
         self.mag_goal=None
@@ -66,10 +65,8 @@ class AdrController():
         # Do error checking
         self.state="regenerate"
         
-        
-    def request_set_bridge_setpoint(self):
-        print self.parent.bridge_setpoint_command_value.value()
-        #self.sim900.setBridgeSetpoint(self.bridge_setpoint_command_value.value())
+    def request_set_bridge_setpoint(self,bridge_setpoint_value):
+        print bridge_setpoint_value
         
     
     def function_loop(self):
