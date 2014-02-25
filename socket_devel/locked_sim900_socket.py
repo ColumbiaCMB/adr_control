@@ -241,7 +241,7 @@ class CleanSocket():
             self.lock.release()
         
     def get_data(self):
-    
+    # No longer necessary with the new command_dict paradigm.
         data_dict={}
         
         start=time.time()
