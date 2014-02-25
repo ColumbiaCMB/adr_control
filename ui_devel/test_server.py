@@ -2,7 +2,7 @@ import Pyro4
 import time
 import threading
 
-class sim900Client():
+class sim900Server():
 
 # This server will register in pyro namespace, continuously run, and push commands from adr_controller to the sim900.
 
@@ -66,7 +66,7 @@ class sim900Client():
         return self.data
         
 def main():
-    sim900=sim900Client(hostname="192.168.1.152")
+    sim900=sim900Server(hostname="192.168.1.152")
     Pyro4.Daemon.serveSimple(
             {
                 sim900: "sim900server"

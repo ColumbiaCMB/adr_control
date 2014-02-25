@@ -1,6 +1,6 @@
 import Pyro4
 import time
-import locked_sim900_socket
+import sim900_communicator
 import threading
 
 generic_command_dictionary={
@@ -13,7 +13,7 @@ generic_command_dictionary={
                                 }
 
 
-class sim900Client():
+class sim900Server():
 
 # This server will register in pyro namespace, continuously run, and push commands from adr_controller to the sim900.
 
@@ -23,7 +23,7 @@ class sim900Client():
         self.start_time=time.time()
         
         self.lock=threading.Lock()
-        self.sock=locked_sim900_socket.CleanSocket(self.lock)
+        self.communicator=sim900_communicator.CleanSocket(self.lock)
         
         self.command_dictionary=command_dictionary
         
@@ -57,7 +57,7 @@ class sim900Client():
                 for j in self.command_dictionary[i]:
                 # cycles over all the commands for each port.
                     msg=j['command']
-                    result=self.sock.query_port(port,msg)
+                    result=self.communicator.query_port(port,msg)
                     self.data[j['name']]=result
                     # replace the 0.0 with whatever locked_socket.query returns. Perhaps recast as float and multiply by scaling function.
             self.data['time']=time.time()
@@ -72,7 +72,7 @@ class sim900Client():
     def send(self,msg):
         # Note that this method has no error checking to make sure the command is valid. That needs to happen before this method is called.
         
-        self.sock.send(msg)
+        self.communicator.send(msg)
         
     def regenerate(self):
         # Just a test
@@ -88,7 +88,7 @@ class sim900Client():
             self.state=0
 
 def main():
-    sim900=sim900Client(hostname="192.168.1.152")
+    sim900=sim900Server(hostname="192.168.1.152")
     Pyro4.Daemon.serveSimple(
             {
                 sim900: "sim900server"

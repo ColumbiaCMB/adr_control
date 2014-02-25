@@ -2,6 +2,8 @@ import socket
 import threading
 import time
 
+# A program that behaves like a very simple (fake) sim900.
+
 class server():
     def __init__(self):
         self.sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -33,10 +35,6 @@ class server():
                     time.sleep(0.5)
                     self.conn.send('#3012helloworld\r\njunkcharactersarehere')
             self.conn.close()
-            
-        # Note that right now, this can't handle inputs that DON'T expect a response (like send).
-        # That is why it gets errno 104 for send, as well as query_port and get_data, both of which include send.
-        # Fix this by changing behavior based on input.
             
             
     def close(self):

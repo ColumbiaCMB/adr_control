@@ -1,5 +1,7 @@
 import socket
 
+# Simple example of how to use sockets.
+
 class server():
     def __init__(self):
         self.sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
