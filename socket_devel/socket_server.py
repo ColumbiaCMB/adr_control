@@ -1,6 +1,4 @@
 import Pyro4
-import simplejson as json
-import random
 import time
 import locked_sim900_socket
 import threading
@@ -36,7 +34,7 @@ class sim900Client():
     def load_loop(self):
         while True:
             self.load_data()
-            #time.sleep(.5)
+            #time.sleep(.5)   
             
     def load_data(self):
     

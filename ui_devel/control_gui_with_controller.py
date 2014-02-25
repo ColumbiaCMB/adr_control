@@ -69,17 +69,17 @@ class PlotDialog(QDialog,Ui_Form):
     def update(self):
         data = self.sim900.fetchDict()
         
-        bridge_setpoint = data["bridge_temperature_setpoint"]
+        bridge_setpoint = data['bridge_temperature_setpoint']
         #self.bridge_setpoint_value.setText(str(bridge_setpoint))
-        temp_bridge = data["bridge_temp_value"]
+        temp_bridge = data['bridge_temp']
         self.temp_bridge_value.setText(str(temp_bridge))
-        temp_3K = data["therm_temperature"][2]
+        temp_3K = data['4k_temp']
         self.temp_3k_value.setText(str(temp_3K))
-        temp_50K = data["therm_temperature"][0]
+        temp_50K = data['50k_temp']
         self.temp_50k_value.setText(str(temp_50K))
-        current = data["dvm_volts"][1]
+        current = data['mag_current']
         self.magnet_current_value.setText(str(current))
-        voltage = data["dvm_volts"][0]
+        voltage = data['mag_volt']
         self.magnet_voltage_value.setText(str(voltage))
         
         #Update Temperature and Setpoint Lists

@@ -39,7 +39,7 @@ class AdrController():
         # Makes sure current is not at max
         # asks for ramp rate
         # asks for max current
-        if self.data["dvm_volts"][1]>=9.4:
+        if self.data['mag_current']>=9.4:
             print "current already at max"
             return
         self.state="mag_up"
@@ -51,7 +51,7 @@ class AdrController():
         # makes sure current is not at min
         # ramp rate
         # min current
-        if self.data["dvm_volts"][1]<=0.0:
+        if self.data['mag_current']<=0.0:
             print "current already at min"
             return
         self.state="mag_down"
@@ -77,8 +77,8 @@ class AdrController():
             if self.exit==True:
                 return 0
             self.data=self.client.fetchDict()
-            mag_current = self.data["dvm_volts"][1]
-            temp = self.data["bridge_temp_value"]
+            mag_current = self.data['mag_current']
+            temp = self.data['bridge_temp']
             
             if self.state=="standby":
                 pass

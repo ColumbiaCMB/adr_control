@@ -12,7 +12,8 @@ class server():
             if not data:
                 break
             print data
-        conn.close()
+        self.conn.close()
+        self.sock.close()
         
 class client():
     def __init__(self):

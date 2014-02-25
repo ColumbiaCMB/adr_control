@@ -4,9 +4,12 @@ import time
 ### This program adds locks to all the socket communications from sim900_socket. It is designed to take a lock from it's parent to make sure no connections collide.
 
 class CleanSocket():
-    def __init__(self, lock, debug=False):
-        self.host="192.168.1.151"
-        self.port=4001
+    def __init__(self, lock, host="192.168.1.151",port=4001,debug=False):
+        self.host=host
+        self.port=port
+        # Defaults for sim900 included.
+        
+        
         self.address=(self.host,self.port)
         self.debug_flag=debug
         self.lock=lock
@@ -105,7 +108,8 @@ class CleanSocket():
                 return raw[5:(5+byte_no)]
             
         else:
-            print 'Input not formatted #3.....'
+            print 'Input not formatted #3 or is not a string. Writing empty data.'
+            return ''
             
     def query(self,port,timeout=2):
         
@@ -206,9 +210,11 @@ class CleanSocket():
                 
                 try:
                     new_data=sock.recv(1024)
-                except:
-                    #catches timeout, but that isn't an error python recognizes, so I can't refer to it by name...
-                    # would be good to not catch all errors, just timeout.
+                except socket.error as e:
+                    #catches all socket errors. Problem in that it raises a different socket error for testing and for using the sim900.
+                    
+                    if self.debug_flag==True:
+                        print e
                     
                     new_data=None
                     # If new data hasn't come in, there is no new data.
