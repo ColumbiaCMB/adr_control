@@ -3,11 +3,14 @@ import time
 
 import Pyro4
 
+import data_logger
+
 class AdrController():
     def __init__(self,client,startup_state="standby"):
         self.exit=False
         self.state=startup_state
         # Sets the current state. Standby by default.
+        self.data_logger=data_logger.DataFile()
         
         self.client=client
         self.data=self.client.fetchDict()
@@ -38,7 +41,7 @@ class AdrController():
         # Makes sure current is not at max
         # asks for ramp rate
         # asks for max current
-        if self.data['mag_current']>=9.4:
+        if self.data['dvm_volts'][1]>=9.4:
             print "current already at max"
             return
         self.state="mag_up"
@@ -50,7 +53,7 @@ class AdrController():
         # makes sure current is not at min
         # ramp rate
         # min current
-        if self.data['mag_current']<=0.0:
+        if self.data['dvm_volts'][1]<=0.0:
             print "current already at min"
             return
         self.state="mag_down"
@@ -74,8 +77,10 @@ class AdrController():
             if self.exit==True:
                 return 0
             self.data=self.client.fetchDict()
-            mag_current = self.data['mag_current']
-            temp = self.data['bridge_temp']
+            self.data_logger.update(self.data)
+            
+            mag_current = self.data['dvm_volts'][1]
+            temp = self.data['bridge_temp_value']
             
             if self.state=="standby":
                 pass
@@ -107,7 +112,7 @@ class AdrController():
             if self.state=="dwell":
                 #make sure nothing is varying wildly.
                 pass
-            time.sleep(1)
+            time.sleep(5)
             
     def ramp(self,goal):
         self.state="mag_up"

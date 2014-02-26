@@ -3,7 +3,7 @@ import time
 
 ### This program adds locks to all the socket communications from sim900_socket. It is designed to take a lock from it's parent to make sure no connections collide.
 
-class CleanSocket():
+class CleanComm():
     def __init__(self, lock, host="192.168.1.151",port=4001,debug=False):
         self.host=host
         self.port=port

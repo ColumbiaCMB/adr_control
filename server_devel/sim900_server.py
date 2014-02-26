@@ -11,7 +11,7 @@ import threading
                                     7:
                                         [{'command':'VOLT? 1','name':'mag_volt','scaling':1.0},{'command':'VOLT? 2','name':'mag_current','scaling':1.0}]
                                 }'''
-generic_command_dictionary={
+downstairs_command_dictionary={
                                     1:
                                         [
                                         {'command':'TVAL?','name':'bridge_temp_value','scaling':1.0},
@@ -58,14 +58,21 @@ generic_command_dictionary={
                                         ],
                                     
                                     5:
-                                        [{'command':'TVAL? 1','name':'50k_temp','scaling':1.0},{'command':'TVAL? 3','name':'4k_temp','scaling':1.0}],
+                                        [
+                                        {'command':'TVAL? 0','name':'therm_temperature','scaling':1.0, 'n_elements':4},
+                                        {'command':'VOLT? 0','name':'therm_volts','scaling':1.0, 'n_elements':4}
+                                        ],
                                         
                                     6:
                                         [
                                         {'command':'CHAN?','name':'mx_channel','scaling':1.0}
-                                        ]                                      
+                                        ],
                                     7:
-                                        [{'command':'VOLT? 1','name':'mag_volt','scaling':1.0},{'command':'VOLT? 2','name':'mag_current','scaling':1.0}]
+                                        [
+                                        {'command':'VOLT? 0','name':'dvm_volts','scaling':1.0, 'n_elements':4},
+                                        {'command':'VGND? 0','name':'dvm_gnd','scaling':1.0, 'n_elements':4},
+                                        {'command':'VREF? 0','name':'dvm_ref','scaling':1.0, 'n_elements':4}
+                                        ]
                                         
                                 }
                                 
@@ -76,13 +83,18 @@ class sim900Server():
 
 # This server will register in pyro namespace, continuously run, and push commands from adr_controller to the sim900.
 
-    def __init__(self, command_dictionary=generic_command_dictionary, hostname="localhost", port=50001):
+    def __init__(self, command_dictionary=downstairs_command_dictionary, hostname="localhost", port=50001):
         self.local_terminator = "\n\r"
-        self.data={"bridge_temperature_setpoint":0.2}
+        self.data={}
         self.start_time=time.time()
         
         self.lock=threading.Lock()
-        self.communicator=sim900_communicator.CleanSocket(self.lock)
+        
+        self.communicator=sim900_communicator.CleanComm(self.lock)
+        # Start up to connect to real sim900
+        
+        #self.communicator=sim900_communicator.CleanComm(self.lock,host='localhost',port=13579)
+        # Start up to connect to fake sim900
         
         self.command_dictionary=command_dictionary
         
@@ -117,13 +129,16 @@ class sim900Server():
                 # cycles over all the commands for each port.
                     msg=j['command']
                     result=self.communicator.query_port(port,msg)
-                    self.data[j['name']]=result
-                    # replace the 0.0 with whatever locked_socket.query returns. Perhaps recast as float and multiply by scaling function.
+                    if 'n_elements' in j:
+                    # check whether there are more than one element in the query.
+                    # if so, we need to slice them up.
+                        print j['n_elements']
+                        results=result.split(',')
+                        self.data[j['name']]=results
+                    else:
+                        self.data[j['name']]=result
             self.data['time']=time.time()
             print self.data
-            
-            #time.sleep(1.0)
-            # Take this out when connected to server.
         
     def fetchDict(self):
         return self.data

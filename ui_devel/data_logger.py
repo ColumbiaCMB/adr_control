@@ -29,11 +29,13 @@ class DataFile():
         self.time_dim=self.nc.createDimension('time',None)
         
         self.time_var=self.nc.createVariable('time',np.float32,dimensions=('time',))
-        self.fiftyk_temp=self.nc.createVariable('50k_temp',np.float32,dimensions=('time',))
-        self.fourk_temp=self.nc.createVariable('4k_temp',np.float32,dimensions=('time',))
-        self.mag_volt=self.nc.createVariable('mag_volt',np.float32,dimensions=('time',))
-        self.mag_current=self.nc.createVariable('mag_current',np.float32,dimensions=('time',))
-        # Add more variables here.
+        
+        
+        #self.fiftyk_temp=self.nc.createVariable('50k_temp',np.float32,dimensions=('time',))
+        #self.fourk_temp=self.nc.createVariable('4k_temp',np.float32,dimensions=('time',))
+        #self.mag_volt=self.nc.createVariable('mag_volt',np.float32,dimensions=('time',))
+        #self.mag_current=self.nc.createVariable('mag_current',np.float32,dimensions=('time',))
+        # Old variables
         
         self.bridge_temp_value=self.nc.createVariable('bridge_temp_value',np.float32,dimensions=('time',))
         self.bridge_temp_deviation=self.nc.createVariable('bridge_temp_deviation',np.float32,dimensions=('time',))
@@ -74,7 +76,29 @@ class DataFile():
         self.pid_ramp_status=self.nc.createVariable('pid_ramp_status',np.float32,dimensions=('time',))
         self.pid_manual_out=self.nc.createVariable('pid_manual_out',np.float32,dimensions=('time',))
         
+        self.therm_temperature0=self.nc.createVariable('therm_temperature0',np.float32,dimensions=('time',))
+        self.therm_temperature1=self.nc.createVariable('therm_temperature1',np.float32,dimensions=('time',))
+        self.therm_temperature2=self.nc.createVariable('therm_temperature2',np.float32,dimensions=('time',))
+        self.therm_temperature3=self.nc.createVariable('therm_temperature3',np.float32,dimensions=('time',))
+        self.therm_volts0=self.nc.createVariable('therm_volts0',np.float32,dimensions=('time',))
+        self.therm_volts1=self.nc.createVariable('therm_volts1',np.float32,dimensions=('time',))
+        self.therm_volts2=self.nc.createVariable('therm_volts2',np.float32,dimensions=('time',))
+        self.therm_volts3=self.nc.createVariable('therm_volts3',np.float32,dimensions=('time',))
+        
         self.mx_channel=self.nc.createVariable('mx_channel',np.float32,dimensions=('time',))
+        
+        self.dvm_volts0=self.nc.createVariable('dvm_volts0',np.float32,dimensions=('time',))
+        self.dvm_volts1=self.nc.createVariable('dvm_volts1',np.float32,dimensions=('time',))
+        self.dvm_volts2=self.nc.createVariable('dvm_volts2',np.float32,dimensions=('time',))
+        self.dvm_volts3=self.nc.createVariable('dvm_volts3',np.float32,dimensions=('time',))
+        self.dvm_gnd0=self.nc.createVariable('dvm_gnd0',np.float32,dimensions=('time',))
+        self.dvm_gnd1=self.nc.createVariable('dvm_gnd1',np.float32,dimensions=('time',))
+        self.dvm_gnd2=self.nc.createVariable('dvm_gnd2',np.float32,dimensions=('time',))
+        self.dvm_gnd3=self.nc.createVariable('dvm_gnd3',np.float32,dimensions=('time',))
+        self.dvm_ref0=self.nc.createVariable('dvm_ref0',np.float32,dimensions=('time',))
+        self.dvm_ref1=self.nc.createVariable('dvm_ref1',np.float32,dimensions=('time',))
+        self.dvm_ref2=self.nc.createVariable('dvm_ref2',np.float32,dimensions=('time',))
+        self.dvm_ref3=self.nc.createVariable('dvm_ref3',np.float32,dimensions=('time',))
         
         
         
@@ -87,12 +111,25 @@ class DataFile():
         # Right now matches keys, and fills data from argument. If there is not match, fills with NaN
         # self.length makes sure all lists stay the same length (and synchronized to the timestamp).
         
-        for key in self.nc.variables.keys():
+        '''for key in self.nc.variables.keys():
             try:
                 self.nc.variables[key][self.length]=data[key]
             except KeyError:
                 print "Key not found. NaN inserted."
+                self.nc.variables[key][self.length]=np.nan'''
+                # Old variable assignment. I like the try-catch, but the new version works better for lists and shouldn't throw errors.
+                
+        for key in self.nc.variables.keys():
+            if key in data:
+                self.nc.variables[key][self.length]=data[key]
+            elif key[:-1] in data:
+                # Slices to go from lists (given by data) to single variables.
+                # Could also use another dimension ("channels"), but that doesn't really represent what we want for this data.
+                self.nc.variables[key][self.length]=data[key[:-1]][int(key[-1:])]
+            else:
+                print "Key not found. NaN inserted."
                 self.nc.variables[key][self.length]=np.nan
+                
         self.length+=1
         
     def close(self):

@@ -4,7 +4,7 @@ import time
 
 # A program that behaves like a very simple (fake) sim900.
 
-class server():
+class FakeSim900():
     def __init__(self):
         self.sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.address=('localhost',13579)
@@ -32,8 +32,12 @@ class server():
                     break
                 print data
                 if data[:4]=='GETN':
-                    time.sleep(0.5)
-                    self.conn.send('#3012helloworld\r\njunkcharactersarehere')
+                    #time.sleep(0.5)
+                    #self.conn.send('#3012helloworld\r\njunkcharactersarehere')
+                    self.conn.send('#300713579\r\n\n')
+                    #self.conn.send('#300513579\r\n')
+                    # Note: an error that could arise came here: if it says 5 characters, but those don't include the \r\n,
+                    # then it will never find the terminator flag. Can this happen in practice?
             self.conn.close()
             
             
