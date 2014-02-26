@@ -295,17 +295,21 @@ class CleanComm():
                     new_data=sock.recv(1024)
                 except socket.error as e:
                     #catches all socket errors. Problem in that it raises a different socket error for testing and for using the sim900.
+                    # print e
                     new_data=None
                     # If new data hasn't come in, there is no new data.
                 if new_data != None:
                     data+=new_data
                     # Add new data to total data if there is is new data.
                 tic=time.time()
-                if data.find('\n')>=0:
-                    print "fast_send_and_receive took %f sec" % (tic-start)
+                index=data.find('\r\n')
+                if index>=0:
                     sock.close()
-                    return data
+                    return data[:index]
+                    # Rough slicing from query.
+                    # Note that we don't need to worry about the leading #3XXX, but we don't get to know how many bytes to expect.
             print 'fast_send_and_receive timed out.'
+            print data
             sock.close()
             return data
         

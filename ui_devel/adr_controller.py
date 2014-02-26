@@ -112,7 +112,7 @@ class AdrController():
             if self.state=="dwell":
                 #make sure nothing is varying wildly.
                 pass
-            time.sleep(5)
+            time.sleep(2)
             
     def ramp(self,goal):
         self.state="mag_up"

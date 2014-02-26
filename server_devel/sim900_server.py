@@ -1,6 +1,7 @@
 import Pyro4
 import time
-import sim900_communicator
+import experimental_sim900_communicator
+#import sim900_communicator
 import threading
 
 '''generic_command_dictionary={
@@ -90,7 +91,8 @@ class sim900Server():
         
         self.lock=threading.Lock()
         
-        self.communicator=sim900_communicator.CleanComm(self.lock)
+        #self.communicator=sim900_communicator.CleanComm(self.lock)
+        self.communicator=experimental_sim900_communicator.CleanComm(self.lock)
         # Start up to connect to real sim900
         
         #self.communicator=sim900_communicator.CleanComm(self.lock,host='localhost',port=13579)
@@ -115,10 +117,12 @@ class sim900Server():
         self.loop_thread.start()
         
         
-    def follow_command_dict(self):
+    def old_follow_command_dict(self):
         # Format {'port':[list of queries to that port of the format {query, name , scaling function}
         # Returns dictionary of format {name:value, name2: value2, etc} (already multiplied by scaling function?)
         # Example {4: [{query: TVAL? 1, name: bridge_temp, scaling function: 1.0, value: FILL THIS IN WITH RETURN STATEMENT},{another dict for each other command or make each input a list?}]}
+        
+        #Uses query_port, which works, but is slower than the CONN method.
         
         while True:
         
@@ -144,6 +148,51 @@ class sim900Server():
                         
                     toc=time.time()
                     print '%s took %f seconds' % (msg,(toc-tic))
+                        
+            self.data['time']=time.time()
+            
+            print "Total process took %f seconds" %(self.data['time']-start)
+            print
+            
+            print self.data
+            
+    def follow_command_dict(self):
+        
+        while True:
+        
+            start=time.time()
+        
+            for i in self.command_dictionary.keys():
+            # Cycles over all the ports
+                port=i
+                connect_msg='CONN %d, "xyx"'%(port)
+                self.communicator.send(connect_msg)
+                
+                try:
+                    # Makes sure communicator will send the 'xyx' to go back to sim900.
+                    # It doesn't work. After shutting down unexpectedly, it gets stuck in another sim module.
+                    
+                    for j in self.command_dictionary[i]:
+                    # cycles over all the commands for each port.
+                    
+                        tic=time.time()
+                        
+                        msg=j['command']
+                        result=self.communicator.fast_send_and_receive(msg)
+                        if 'n_elements' in j:
+                        # check whether there are more than one element in the query.
+                        # if so, we need to slice them up.
+                            results=result.split(',')
+                            self.data[j['name']]=results
+                        else:
+                            self.data[j['name']]=result
+                            
+                        toc=time.time()
+                        print '%s took %f seconds' % (msg,(toc-tic))
+                except Exception as e:
+                    raise e
+                finally:
+                    self.communicator.send('xyx')
                         
             self.data['time']=time.time()
             
