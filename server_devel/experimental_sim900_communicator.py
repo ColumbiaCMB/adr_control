@@ -1,3 +1,5 @@
+# sim900_communicator with extra functions to test with.
+
 import socket
 import time
 
@@ -146,10 +148,34 @@ class CleanComm():
         print 'query timed out'
         return data
         
+    def custom_query(self,expected,port,timeout=2):
+        # Used for testing some alternate send/receive methods that may be faster.
+        # Grabs a whole bunch of stored responses in the buffer (number = expected).
+        data=''
+        start=time.time()
+        tic=time.time()
+        found=0
+        
+        while tic-start<timeout:
+            raw_data=self.query_loop(port)
+            
+            payload=self.decode(raw_data)
+            
+            data+=payload
+            
+            tic=time.time()
+            
+            found=data.count('\r\n')
+            
+            if found==expected:
+                return data
+            
+        print 'query timed out'
+        return data
+        
     def query_port(self,port, msg):
         # For easy talking to ports. Sends the question, then retrieves the answer with GETN command to port.
         # Good test: port=3, msg='*IDN?'
-        
         format_msg='SNDT %d, "%s"' % (port,msg)
         self.send(format_msg)
         # Sends the message
@@ -232,3 +258,80 @@ class CleanComm():
         
         finally:
             self.lock.release()
+            
+    def fast_send_and_receive(self,msg,terminator='\r\n'):
+        # Added the self.terminator option in case CONN is being used and terminator control should be manual (in which case set terminator = None).
+        sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        sock.settimeout(2)
+        data=None
+        
+        self.lock.acquire()
+        
+        try:
+        
+            try:
+                sock.connect(self.address)
+                sock.setblocking(0)
+            except socket.error:
+                print "Socket unable to connect. Check that no other sockets are connected."
+                raise
+                # Instead of returning None here, raise an exception. Ditto for other parts of this code.
+                
+            try:
+                sock.send(msg+terminator)
+            except:
+                print "socket unable to send message"
+                sock.close()
+                raise
+            
+            # Now for the query_loop-esque code.
+            data=''
+            expected_data_length=5
+            start=time.time()
+            tic=time.time()
+            
+            while (tic-start<2):
+                try:
+                    new_data=sock.recv(1024)
+                except socket.error as e:
+                    #catches all socket errors. Problem in that it raises a different socket error for testing and for using the sim900.
+                    new_data=None
+                    # If new data hasn't come in, there is no new data.
+                if new_data != None:
+                    data+=new_data
+                    # Add new data to total data if there is is new data.
+                tic=time.time()
+                if data.find('\n')>=0:
+                    print "fast_send_and_receive took %f sec" % (tic-start)
+                    sock.close()
+                    return data
+            print 'fast_send_and_receive timed out.'
+            sock.close()
+            return data
+        
+        finally:
+            self.lock.release()
+        
+    def get_data(self):
+    # No longer necessary with the new command_dict paradigm.
+        data_dict={}
+        
+        start=time.time()
+    
+        data_dict['bridge_temp']=self.query_port(1, 'TVAL?')
+        # Bridge temperature
+        data_dict['50k_temp']=self.query_port(5, 'TVAL? 1')
+        data_dict['4k_temp']=self.query_port(5, 'TVAL? 3')
+        # 50K and 4K stage temperature top to bottom.
+        
+        data_dict['mag_volt']=self.query_port(7, 'VOLT? 1')
+        data_dict['mag_current']=self.query_port(7, 'VOLT? 2')
+        # Mag V and Mag I top to bottom
+        
+        tic=time.time()
+        if self.debug_flag==True:
+            print "get_data took %f sec" % (tic-start)
+        
+        # Added a bunch of timing functions in here. They can be removed.
+        
+        return data_dict
