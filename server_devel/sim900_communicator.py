@@ -146,6 +146,31 @@ class CleanComm():
         print 'query timed out'
         return data
         
+    def custom_query(self,expected,port,timeout=2):
+        # Used for testing some alternate send/receive methods that may be faster.
+        # Grabs a whole bunch of stored responses in the buffer (number = expected).
+        data=''
+        start=time.time()
+        tic=time.time()
+        found=0
+        
+        while tic-start<timeout:
+            raw_data=self.query_loop(port)
+            
+            payload=self.decode(raw_data)
+            
+            data+=payload
+            
+            tic=time.time()
+            
+            found=data.count('\r\n')
+            
+            if found==expected:
+                return data
+            
+        print 'query timed out'
+        return data
+        
     def query_port(self,port, msg):
         # For easy talking to ports. Sends the question, then retrieves the answer with GETN command to port.
         # Good test: port=3, msg='*IDN?'
@@ -169,13 +194,6 @@ class CleanComm():
         
             try:
                 sock.connect(self.address)
-                
-                ### trying to prevent refused connections
-                #sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-                ###
-                
-                # This did not solve the problems. Python also doesn't seem to have the REUSE_PORT option.
-                
                 sock.setblocking(0)
             except socket.error:
                 print "Socket unable to connect. Check that no other sockets are connected."
@@ -207,7 +225,6 @@ class CleanComm():
             # This loop constantly looks for new data until 2 seconds have passed, or the data has at least 4 characters.
             # Note that data from the sim900 will ALWAYS have at least 5 characters: #3xxx where xx is the amount of bytes of data
             # following the intro.
-                
                 try:
                     new_data=sock.recv(1024)
                 except socket.error as e:
@@ -218,6 +235,7 @@ class CleanComm():
                     
                     new_data=None
                     # If new data hasn't come in, there is no new data.
+                    
                     
                 if new_data != None:
                     data+=new_data

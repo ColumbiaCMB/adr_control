@@ -122,22 +122,34 @@ class sim900Server():
         
         while True:
         
+            start=time.time()
+        
             for i in self.command_dictionary.keys():
             # Cycles over all the ports
                 port=i
                 for j in self.command_dictionary[i]:
                 # cycles over all the commands for each port.
+                    
+                    tic=time.time()
+                    
                     msg=j['command']
                     result=self.communicator.query_port(port,msg)
                     if 'n_elements' in j:
                     # check whether there are more than one element in the query.
                     # if so, we need to slice them up.
-                        print j['n_elements']
                         results=result.split(',')
                         self.data[j['name']]=results
                     else:
                         self.data[j['name']]=result
+                        
+                    toc=time.time()
+                    print '%s took %f seconds' % (msg,(toc-tic))
+                        
             self.data['time']=time.time()
+            
+            print "Total process took %f seconds" %(self.data['time']-start)
+            print
+            
             print self.data
         
     def fetchDict(self):
