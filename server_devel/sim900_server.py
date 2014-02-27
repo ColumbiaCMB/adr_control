@@ -41,6 +41,8 @@ downstairs_command_dictionary={
                                         {'command':'SETP?','name':'pid_setpoint','scaling':1.0},
                                         {'command':'MMON?','name':'pid_measure_mon','scaling':1.0},
                                         {'command':'EMON?','name':'pid_error_mon','scaling':1.0},
+                                        #{'command':'badcommand','name':'pid_error_mon','scaling':1.0},
+                                        # for testing errors
                                         {'command':'OMON?','name':'pid_output_mon','scaling':1.0},
                                         {'command':'PCTL?','name':'pid_propor_on','scaling':1.0},
                                         {'command':'ICTL?','name':'pid_integral_on','scaling':1.0},
@@ -85,17 +87,18 @@ class sim900Server():
 # This server will register in pyro namespace, continuously run, and push commands from adr_controller to the sim900.
 
     def __init__(self, command_dictionary=downstairs_command_dictionary, hostname="localhost", port=50001):
-        self.local_terminator = "\n\r"
         self.data={}
-        self.start_time=time.time()
         
-        self.lock=threading.Lock()
+        self.communicator_lock=threading.Lock()
+        # Make sure communicator methods don't collide.
+        self.server_lock=threading.Lock()
+        # Make sure server methods don't collide. In particular, I don't want to try sending a command while the follow_command_dict
+        # is talking to a specific port.
         
-        #self.communicator=sim900_communicator.CleanComm(self.lock)
-        self.communicator=experimental_sim900_communicator.CleanComm(self.lock)
+        self.communicator=experimental_sim900_communicator.CleanComm(self.communicator_lock)
         # Start up to connect to real sim900
         
-        #self.communicator=sim900_communicator.CleanComm(self.lock,host='localhost',port=13579)
+        #self.communicator=sim900_communicator.CleanComm(self.communicator_lock,host='localhost',port=13579)
         # Start up to connect to fake sim900
         
         self.command_dictionary=command_dictionary
@@ -115,12 +118,110 @@ class sim900Server():
         self.loop_thread=threading.Thread(target=self.follow_command_dict)
         self.loop_thread.daemon=True
         self.loop_thread.start()
+            
+    def follow_command_dict(self):
+    
+        self.communicator.send('xyx')
+        # Makes sure we always start at the top level of the sim900.
         
+        while True:
         
-    def old_follow_command_dict(self):
+            start=time.time()
+        
+            for i in self.command_dictionary.keys():
+            # Cycles over all the ports
+            
+            
+                #start_port_time=time.time()
+                port=i
+                connect_msg='CONN %d, "xyx"'%(port)
+                
+                self.server_lock.acquire()
+                
+                try:
+                    # Makes sure communicator will send the 'xyx' to go back to sim900.
+                    # It doesn't work. After shutting down unexpectedly, it gets stuck in another sim module.
+                    self.communicator.send(connect_msg)
+                    
+                    for j in self.command_dictionary[i]:
+                    # cycles over all the commands for each port.
+                    
+                        #tic=time.time()
+                        
+                        msg=j['command']
+                        result=self.communicator.fast_send_and_receive(msg)
+                        if 'n_elements' in j:
+                        # check whether there are more than one element in the query.
+                        # if so, we need to slice them up.
+                            results=result.split(',')
+                            self.data[j['name']]=results
+                        else:
+                            self.data[j['name']]=result
+                            
+                        #toc=time.time()
+                        #print '%s took %f seconds' % (msg,(toc-tic))
+                except Exception as e:
+                    raise e
+                finally:
+                    #end_port_time=time.time()
+                    #print 'Port %d done, it took %f seconds'%(port,(end_port_time-start_port_time))
+                    self.server_lock.release()
+                    self.communicator.send('xyx')
+            self.data['time']=time.time()
+            
+            #print "Total data loading took %f seconds" %(self.data['time']-start)
+            #print
+            
+            #print self.data
+        
+    def fetchDict(self):
+        return self.data
+        
+    def regenerate(self):
+        # Just a test that is very easy to observe (all PID lights go on and off)
+        
+        self.server_lock.acquire()
+        try:
+            self.communicator.send('xyx')
+            # Makes sure we always start at the top level of the sim900.
+            print 'regenerate'
+            if self.state==0:
+                self.communicator.send('SNDT 3, "PCTL 1"')
+                self.communicator.send('SNDT 3, "ICTL 1"')
+                self.communicator.send('SNDT 3, "DCTL 1"')
+                self.state=1
+            else:
+                self.communicator.send('SNDT 3, "PCTL 0"')
+                self.communicator.send('SNDT 3, "ICTL 0"')
+                self.communicator.send('SNDT 3, "DCTL 0"')
+                self.state=0
+        except:
+            raise
+        finally:
+            self.server_lock.release()
+
+
+    def set_pid_manual_out(self,output):
+        self.server_lock.acquire()
+        self.communicator.send('xyx')
+        if self.data['pid_manual_status']=='0':
+            msg='SNDT 3, "AMAN 1"'
+            self.communicator.send(msg)
+        msg = 'SNDT 3, "MOUT %f"'%(output)
+        self.communicator.send(msg)
+        print self.communicator.query_port(3,'MOUT?')
+        print self.communicator.query_port(3,'AMAN?')
+        self.server_lock.release()
+            
+            
+            
+
+            
+    '''def old_follow_command_dict(self):
         # Format {'port':[list of queries to that port of the format {query, name , scaling function}
         # Returns dictionary of format {name:value, name2: value2, etc} (already multiplied by scaling function?)
-        # Example {4: [{query: TVAL? 1, name: bridge_temp, scaling function: 1.0, value: FILL THIS IN WITH RETURN STATEMENT},{another dict for each other command or make each input a list?}]}
+        # Example {4: [{query: TVAL? 1, name: bridge_temp, scaling function: 1.0, value: FILL THIS IN WITH RETURN STATEMENT},
+        # {another dict for each other command or make each input a list?}]}
         
         #Uses query_port, which works, but is slower than the CONN method.
         
@@ -151,76 +252,10 @@ class sim900Server():
                         
             self.data['time']=time.time()
             
-            print "Total process took %f seconds" %(self.data['time']-start)
+            print "Total data loading took %f seconds" %(self.data['time']-start)
             print
             
-            print self.data
-            
-    def follow_command_dict(self):
-        
-        while True:
-        
-            start=time.time()
-        
-            for i in self.command_dictionary.keys():
-            # Cycles over all the ports
-                port=i
-                connect_msg='CONN %d, "xyx"'%(port)
-                self.communicator.send(connect_msg)
-                
-                try:
-                    # Makes sure communicator will send the 'xyx' to go back to sim900.
-                    # It doesn't work. After shutting down unexpectedly, it gets stuck in another sim module.
-                    
-                    for j in self.command_dictionary[i]:
-                    # cycles over all the commands for each port.
-                    
-                        tic=time.time()
-                        
-                        msg=j['command']
-                        result=self.communicator.fast_send_and_receive(msg)
-                        if 'n_elements' in j:
-                        # check whether there are more than one element in the query.
-                        # if so, we need to slice them up.
-                            results=result.split(',')
-                            self.data[j['name']]=results
-                        else:
-                            self.data[j['name']]=result
-                            
-                        toc=time.time()
-                        print '%s took %f seconds' % (msg,(toc-tic))
-                except Exception as e:
-                    raise e
-                finally:
-                    self.communicator.send('xyx')
-                        
-            self.data['time']=time.time()
-            
-            print "Total process took %f seconds" %(self.data['time']-start)
-            print
-            
-            print self.data
-        
-    def fetchDict(self):
-        return self.data
-        
-    def send(self,msg):
-        # Note that this method has no error checking to make sure the command is valid. That needs to happen before this method is called.
-        
-        self.communicator.send(msg)
-        
-    def regenerate(self):
-        # Just a test
-        if self.state==0:
-            self.send('SNDT 3, "PCTL 1"')
-            self.send('SNDT 3, "ICTL 1"')
-            self.send('SNDT 3, "DCTL 1"')
-            self.state=1
-        else:
-            self.send('SNDT 3, "PCTL 0"')
-            self.send('SNDT 3, "ICTL 0"')
-            self.send('SNDT 3, "DCTL 0"')
-            self.state=0
+            #print self.data'''
 
 def main():
     sim900=sim900Server(hostname="192.168.1.152")

@@ -259,7 +259,7 @@ class CleanComm():
         finally:
             self.lock.release()
             
-    def fast_send_and_receive(self,msg,terminator='\r\n'):
+    def fast_send_and_receive(self,msg,terminator='\r\n',end_of_response='\r\n'):
         # Added the self.terminator option in case CONN is being used and terminator control should be manual (in which case set terminator = None).
         sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         sock.settimeout(2)
@@ -275,7 +275,6 @@ class CleanComm():
             except socket.error:
                 print "Socket unable to connect. Check that no other sockets are connected."
                 raise
-                # Instead of returning None here, raise an exception. Ditto for other parts of this code.
                 
             try:
                 sock.send(msg+terminator)
@@ -302,16 +301,16 @@ class CleanComm():
                     data+=new_data
                     # Add new data to total data if there is is new data.
                 tic=time.time()
-                index=data.find('\r\n')
+                index=data.find(end_of_response)
                 if index>=0:
                     sock.close()
                     return data[:index]
                     # Rough slicing from query.
-                    # Note that we don't need to worry about the leading #3XXX, but we don't get to know how many bytes to expect.
+                    # Note that we don't need to worry about the leading #3XXX, but we don't know how many bytes to expect.
             print 'fast_send_and_receive timed out.'
-            print data
             sock.close()
             return data
+            # We have problems if we try to convert an empty string to a float, but the logger can deal with ValueErrors.
         
         finally:
             self.lock.release()

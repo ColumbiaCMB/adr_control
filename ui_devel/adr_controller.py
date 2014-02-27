@@ -79,40 +79,38 @@ class AdrController():
             self.data=self.client.fetchDict()
             self.data_logger.update(self.data)
             
-            mag_current = self.data['dvm_volts'][1]
-            temp = self.data['bridge_temp_value']
+            pid_manual_out=float(self.data['pid_manual_out'])
             
-            if self.state=="standby":
-                pass
-                #self.client.stop()
-            if self.state=="regenerate":
-                self.client.regenerate()
-            if self.state=="regulate":
-                pass
-                #self.client.regulate()
-            if self.state=="mag_up":
-                if temp>6:
-                    return
-                    # Should I use exception try/catch here instead of just returning?
-                if mag_current<9.4:
+            try:
+                if self.state=="standby":
                     pass
-                    #self.client.set_current(mag_current+0.1)
-                if mag_current>=9.4:
+                if self.state=="regenerate":
+                    self.client.regenerate()
+                if self.state=="regulate":
                     pass
-                    #self.state="dwell"
-            if self.state=="mag_down":
-                if temp>6:
-                    return
-                    # Should I use exception try/catch here instead of just returning?
-                if mag_current>0.0:
+                    #self.client.regulate()
+                if self.state=="mag_up":
+                    #if temp>6:
+                        #raise ValueError('Temperature too high for mag_up')
+                    if pid_manual_out<9.4:
+                        self.client.set_pid_manual_out(pid_manual_out+0.1)
+                    if pid_manual_out>=9.4:
+                        self.state="dwell"
+                        raise ValueError('mag_current is at max. State has been set to dwell.')
+                if self.state=="mag_down":
+                    #if temp>6:
+                        #raise ValueError('Temperature too high for mag_down')
+                    if pid_manual_out>0.0:
+                        self.client.set_pid_manual_out(pid_manual_out-0.1)
+                    if pid_manual_out<=0.0:
+                        self.state="standby"
+                        raise ValueError('mag_current is at minimum. State has been set to standby.')
+                if self.state=="dwell":
+                    #make sure nothing is varying wildly.
                     pass
-                    #self.client.set_current(mag_current-0.1)
-                if mag_current<=0.0:
-                    self.state="standby"
-            if self.state=="dwell":
-                #make sure nothing is varying wildly.
-                pass
-            time.sleep(2)
+            except ValueError as e:
+                print e
+            time.sleep(3)
             
     def ramp(self,goal):
         self.state="mag_up"

@@ -46,8 +46,7 @@ class PlotDialog(QDialog,Ui_Form):
         #The timeout is connected to the update function
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
-        #self.timer.start(364)
-        self.timer.start(1000)
+        self.timer.start(3000)
         
     def setupSlots(self):
         QObject.connect(self.bridge_setpoint_command_value,SIGNAL("editingFinished()"),self.set_bridge_setpoint)
