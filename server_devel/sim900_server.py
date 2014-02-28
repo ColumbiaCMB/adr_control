@@ -3,6 +3,7 @@ import time
 import experimental_sim900_communicator
 #import sim900_communicator
 import threading
+import numpy as np
 
 '''generic_command_dictionary={
                                     1:
@@ -154,9 +155,25 @@ class sim900Server():
                         # check whether there are more than one element in the query.
                         # if so, we need to slice them up.
                             results=result.split(',')
-                            self.data[j['name']]=results
+                            for i in range(len(results)):
+                                # Slices lists into separate dictionary entries.
+                                results[i]=float(results[i])
+                                newkey=j['name']+str(i)
+                                try:
+                                    self.data[newkey]=results[i]
+                                except ValueError as e:
+                                    print 'Value error in key %s. NaN inserted. Error printed below.'%(key)
+                                    print e
+                                    self.data[newkey]=np.nan
+                            
                         else:
-                            self.data[j['name']]=result
+                            # Error catching for unconvertable strings.
+                            try:
+                                self.data[j['name']]=float(result)
+                            except ValueError as e:
+                                print 'Value error in key %s. NaN inserted. Error printed below.'%(key)
+                                print e
+                                self.data[j['name']]=np.nan
                             
                         #toc=time.time()
                         #print '%s took %f seconds' % (msg,(toc-tic))
@@ -169,10 +186,10 @@ class sim900Server():
                     self.communicator.send('xyx')
             self.data['time']=time.time()
             
-            #print "Total data loading took %f seconds" %(self.data['time']-start)
+            print "Total data loading took %f seconds" %(self.data['time']-start)
             #print
             
-            #print self.data
+            print self.data
         
     def fetchDict(self):
         return self.data
@@ -204,58 +221,11 @@ class sim900Server():
     def set_pid_manual_out(self,output):
         self.server_lock.acquire()
         self.communicator.send('xyx')
-        if self.data['pid_manual_status']=='0':
-            msg='SNDT 3, "AMAN 1"'
-            self.communicator.send(msg)
         msg = 'SNDT 3, "MOUT %f"'%(output)
         self.communicator.send(msg)
         print self.communicator.query_port(3,'MOUT?')
-        print self.communicator.query_port(3,'AMAN?')
         self.server_lock.release()
-            
-            
-            
-
-            
-    '''def old_follow_command_dict(self):
-        # Format {'port':[list of queries to that port of the format {query, name , scaling function}
-        # Returns dictionary of format {name:value, name2: value2, etc} (already multiplied by scaling function?)
-        # Example {4: [{query: TVAL? 1, name: bridge_temp, scaling function: 1.0, value: FILL THIS IN WITH RETURN STATEMENT},
-        # {another dict for each other command or make each input a list?}]}
         
-        #Uses query_port, which works, but is slower than the CONN method.
-        
-        while True:
-        
-            start=time.time()
-        
-            for i in self.command_dictionary.keys():
-            # Cycles over all the ports
-                port=i
-                for j in self.command_dictionary[i]:
-                # cycles over all the commands for each port.
-                    
-                    tic=time.time()
-                    
-                    msg=j['command']
-                    result=self.communicator.query_port(port,msg)
-                    if 'n_elements' in j:
-                    # check whether there are more than one element in the query.
-                    # if so, we need to slice them up.
-                        results=result.split(',')
-                        self.data[j['name']]=results
-                    else:
-                        self.data[j['name']]=result
-                        
-                    toc=time.time()
-                    print '%s took %f seconds' % (msg,(toc-tic))
-                        
-            self.data['time']=time.time()
-            
-            print "Total data loading took %f seconds" %(self.data['time']-start)
-            print
-            
-            #print self.data'''
 
 def main():
     sim900=sim900Server(hostname="192.168.1.152")

@@ -131,7 +131,7 @@ class DataFile():
                     self.nc.variables[key][self.length]=np.nan
             elif key[:-1] in data:
                 # Slices to go from lists (given by data) to single variables.
-                # Could also use another dimension ("channels"), but that doesn't really represent what we want for this data.
+                # This now happens in the server instead, so it is no longer necessary.
                 try:
                     self.nc.variables[key][self.length]=data[key[:-1]][int(key[-1:])]
                 except ValueError as e:
