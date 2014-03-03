@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Fri Feb 21 16:51:30 2014
+# Created: Mon Mar  3 10:58:39 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -165,7 +165,7 @@ class Ui_Form(object):
         self.verticalLayout_5.addWidget(self.cryo_pressure_value)
         self.gridLayout_2.addLayout(self.verticalLayout_5, 0, 3, 1, 1)
         spacerItem2 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.gridLayout_2.addItem(spacerItem2, 0, 4, 1, 1)
+        self.gridLayout_2.addItem(spacerItem2, 0, 5, 1, 1)
         self.verticalLayout_6 = QtGui.QVBoxLayout()
         self.verticalLayout_6.setSpacing(1)
         self.verticalLayout_6.setContentsMargins(5, -1, 5, -1)
@@ -229,6 +229,24 @@ class Ui_Form(object):
         self.bridge_setpoint_command_value.setObjectName(_fromUtf8("bridge_setpoint_command_value"))
         self.verticalLayout_8.addWidget(self.bridge_setpoint_command_value)
         self.gridLayout_2.addLayout(self.verticalLayout_8, 0, 1, 1, 1)
+        self.verticalLayout_2 = QtGui.QVBoxLayout()
+        self.verticalLayout_2.setSpacing(0)
+        self.verticalLayout_2.setContentsMargins(0, 35, 0, 35)
+        self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
+        self.label_6 = QtGui.QLabel(self.tabWidgetPage1)
+        self.label_6.setText(QtGui.QApplication.translate("Form", "Pid Output", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_6.setObjectName(_fromUtf8("label_6"))
+        self.verticalLayout_2.addWidget(self.label_6)
+        self.pid_output_value = QtGui.QLineEdit(self.tabWidgetPage1)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.pid_output_value.sizePolicy().hasHeightForWidth())
+        self.pid_output_value.setSizePolicy(sizePolicy)
+        self.pid_output_value.setReadOnly(True)
+        self.pid_output_value.setObjectName(_fromUtf8("pid_output_value"))
+        self.verticalLayout_2.addWidget(self.pid_output_value)
+        self.gridLayout_2.addLayout(self.verticalLayout_2, 0, 4, 1, 1)
         self.verticalLayout_3.addLayout(self.gridLayout_2)
         self.tabWidget.addTab(self.tabWidgetPage1, _fromUtf8(""))
         self.tabWidgetPage2 = QtGui.QWidget()

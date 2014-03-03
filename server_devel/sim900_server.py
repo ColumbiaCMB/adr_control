@@ -1,18 +1,9 @@
 import Pyro4
 import time
 import experimental_sim900_communicator
-#import sim900_communicator
 import threading
 import numpy as np
 
-'''generic_command_dictionary={
-                                    1:
-                                        [{'command':'TVAL?','name':'bridge_temp','scaling':1.0}],
-                                    5:
-                                        [{'command':'TVAL? 1','name':'50k_temp','scaling':1.0},{'command':'TVAL? 3','name':'4k_temp','scaling':1.0}],
-                                    7:
-                                        [{'command':'VOLT? 1','name':'mag_volt','scaling':1.0},{'command':'VOLT? 2','name':'mag_current','scaling':1.0}]
-                                }'''
 downstairs_command_dictionary={
                                     1:
                                         [
@@ -89,6 +80,7 @@ class sim900Server():
 
     def __init__(self, command_dictionary=downstairs_command_dictionary, hostname="localhost", port=50001):
         self.data={}
+        self.state='standby'
         
         self.communicator_lock=threading.Lock()
         # Make sure communicator methods don't collide.
@@ -109,6 +101,8 @@ class sim900Server():
         self.start_loop_thread()
         
         self.state=0
+        
+        self.flag_available=True
         
         
     def start_loop_thread(self):
@@ -187,12 +181,32 @@ class sim900Server():
             self.data['time']=time.time()
             
             print "Total data loading took %f seconds" %(self.data['time']-start)
-            #print
+            print 'self.flag_available is %s'%(str(self.flag_available))
             
-            print self.data
+            #eprint self.data
         
-    def fetchDict(self):
+    def fetch_dict(self):
         return self.data
+        
+    def fetch_state(self):
+        return self.state
+        
+    def set_state(self,state):
+        self.state=state
+        
+    def get_flag(self):
+    # Used by controller to get action flag.
+        if self.flag_available:
+            self.flag_available=False
+            return True
+        else:
+            return False
+            
+    def give_flag(self):
+    # Used by controller to give back action flag.
+        self.flag_available=True
+        
+    # These methods are used to coordinate with the controller.
         
     def regenerate(self):
         # Just a test that is very easy to observe (all PID lights go on and off)
@@ -224,6 +238,15 @@ class sim900Server():
         msg = 'SNDT 3, "MOUT %f"'%(output)
         self.communicator.send(msg)
         print self.communicator.query_port(3,'MOUT?')
+        self.server_lock.release()
+        
+    def send(self,msg,port):
+        # Generic send command.
+        self.server_lock.acquire()
+        self.communicator.send('xyx')
+        new_msg='SNDT %d, "%s"'%(port,msg)
+        self.communicator.send(new_msg)
+        #print 'SNDT 3, "MOUT %f"'
         self.server_lock.release()
         
 

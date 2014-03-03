@@ -1,6 +1,7 @@
 from gui import Ui_Form
 from superplot import Superplot
 import adr_controller
+import data_logger
 # Custom modules
 
 
@@ -24,7 +25,8 @@ class PlotDialog(QDialog,Ui_Form):
         super(PlotDialog, self).__init__(parent)
         
         self.sim900=Pyro4.Proxy("PYRONAME:sim900server")
-        self.controller=adr_controller.AdrController(self.sim900)
+        self.controller=adr_controller.AdrController(client=self.sim900)
+        self.data_logger=data_logger.DataFile()
         # Sets up sim900 pyro proxy and AdrController.
         
         
@@ -66,20 +68,22 @@ class PlotDialog(QDialog,Ui_Form):
         self.time_list=[]
         
     def update(self):
-        data = self.sim900.fetchDict()
+        data = self.sim900.fetch_dict()
+        self.data_logger.update(data)
         
         bridge_setpoint = data['bridge_temperature_setpoint']
         #self.bridge_setpoint_value.setText(str(bridge_setpoint))
         temp_bridge = data['bridge_temp_value']
         self.temp_bridge_value.setText(str(temp_bridge))
-        temp_3K = data['therm_temperature'][2]
+        temp_3K = data['therm_temperature2']
         self.temp_3k_value.setText(str(temp_3K))
-        temp_50K = data['therm_temperature'][0]
+        temp_50K = data['therm_temperature0']
         self.temp_50k_value.setText(str(temp_50K))
-        current = data['dvm_volts'][1]
+        current = data['dvm_volts1']
         self.magnet_current_value.setText(str(current))
-        voltage = data['dvm_volts'][0]
+        voltage = data['dvm_volts0']
         self.magnet_voltage_value.setText(str(voltage))
+        self.pid_output_value.setText(str(data['pid_output_mon']))
         
         #Update Temperature and Setpoint Lists
         if len(self.temp_list) < 50:

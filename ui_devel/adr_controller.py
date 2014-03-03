@@ -3,17 +3,22 @@ import time
 
 import Pyro4
 
-import data_logger
 
 class AdrController():
     def __init__(self,client,startup_state="standby"):
         self.exit=False
         self.state=startup_state
         # Sets the current state. Standby by default.
-        self.data_logger=data_logger.DataFile()
+        
+        self.active_flag=False
+        # This allows the coordination of multiple adr_controllers.
+        
+        self.refresh_rate=3
+        self.ramp_step=0.0
+        self.ramp_goal=0.0
         
         self.client=client
-        self.data=self.client.fetchDict()
+        self.data=self.client.fetch_dict()
         self.mag_goal=None
         self.loop_thread=None
         
@@ -28,90 +33,144 @@ class AdrController():
         self.loop_thread.daemon=True
         self.loop_thread.start()
         
+    def grab_flag(self):
+        if self.active_flag==True:
+            print 'You already have the flag.'
+        else:
+            flag=self.client.get_flag()
+            self.active_flag=flag
+        
+    def give_flag(self):
+        if self.active_flag==True:
+            self.client.give_flag()
+            self.active_flag=False
+        
     def request_standby(self):
         #make sure current is zero
         # make sure no PID
-        if self.data["dvm_volts"][1]!=0:
+        if self.data["dvm_volts1"]!=0:
             print "Set magnet current to zero before standby."
             return
             # use exceptions here instead?
-        self.state="standby"
-    
-    def request_mag_up(self):
-        # Makes sure current is not at max
-        # asks for ramp rate
-        # asks for max current
-        if self.data['dvm_volts'][1]>=9.4:
-            print "current already at max"
-            return
-        self.state="mag_up"
+        self.state='standby'
+        self.client.set_state('standby')
     
     def request_dwell(self):
         # makes sure system is in dwellable state.
-        self.state="dwell"
-    def request_mag_down(self):
-        # makes sure current is not at min
-        # ramp rate
-        # min current
-        if self.data['dvm_volts'][1]<=0.0:
-            print "current already at min"
-            return
-        self.state="mag_down"
-    
+        self.state='dwell'
+        self.client.set_state('dwell')
+        
     def request_regulate(self):
         # makes sure system is in standby
         # engages PID
         # if current goes below some value (0.15) end regulation (this should actually be in function_loop)
-        self.state="regulate"
+        self.state='regulate'
+        self.client.set_state('regulate')
         
     def request_regenerate(self):
         # Do error checking
-        self.state="regenerate"
+        self.state='regenerate'
+        self.client.set_state('regenerate')
         
     def request_set_bridge_setpoint(self,bridge_setpoint_value):
         print bridge_setpoint_value
         
+    def request_manual_output_on(self):
+        if data['bridge_output_mode']==1:
+            # If the mode is in PID control...
+            output_now=data['pid_output_mon']
+            # Checks current output.
+            msg='MOUT %f'%(output_now)
+            self.client.send(3,msg)
+            # Sets manual output to that output.
+            self.client.send(3,'AMAN 0')
+            # Turns manual output on.
+        else:
+            print 'Output mode already manual.'
+            
+    def ramp_to(self,rate,goal):
     
+        # Do error checking here to make sure I can ramp. Check server state to make sure it isn't already ramping.
+        
+        self.grab_flag()
+        if not self.active_flag:
+            return
+        # Tries to grab the active flag. If it doesn't get it, it ends.
+        # The flag will be given back once the ramping is complete.
+        
+        if self.data['bridge_output_mode']==1:
+            # check that manual output on
+            self.request_manual_output_on()
+            
+        difference=goal-self.data['dvm_volts1']
+    
+        if rate>0 and difference>0:
+            print 'Rate must be negative if ramping current up.'
+            self.give_flag()
+            return
+        if rate<0 and difference<0:
+            print 'Rate must be positive if ramping current down.'
+            self.give_flag()
+            return
+        
+        self.state='ramping'
+        self.client.set_state('ramping')
+        self.ramp_step=rate*self.refresh_rate
+        self.ramp_goal=goal
+        # rate should be in volts/second and refresh rate is the time between function loops.
+        return
+        
     def function_loop(self):
         while True:
             if self.exit==True:
                 return 0
-            self.data=self.client.fetchDict()
-            self.data_logger.update(self.data)
+                
+            self.data=self.client.fetch_dict()
             
-            pid_manual_out=float(self.data['pid_manual_out'])
-            
-            try:
-                if self.state=="standby":
-                    pass
-                if self.state=="regenerate":
-                    self.client.regenerate()
-                if self.state=="regulate":
-                    pass
-                    #self.client.regulate()
-                if self.state=="mag_up":
-                    #if temp>6:
-                        #raise ValueError('Temperature too high for mag_up')
-                    if pid_manual_out<9.4:
-                        self.client.set_pid_manual_out(pid_manual_out+0.1)
-                    if pid_manual_out>=9.4:
-                        self.state="dwell"
-                        raise ValueError('mag_current is at max. State has been set to dwell.')
-                if self.state=="mag_down":
-                    #if temp>6:
-                        #raise ValueError('Temperature too high for mag_down')
-                    if pid_manual_out>0.0:
-                        self.client.set_pid_manual_out(pid_manual_out-0.1)
-                    if pid_manual_out<=0.0:
-                        self.state="standby"
-                        raise ValueError('mag_current is at minimum. State has been set to standby.')
-                if self.state=="dwell":
-                    #make sure nothing is varying wildly.
-                    pass
-            except ValueError as e:
-                print e
-            time.sleep(3)
-            
-    def ramp(self,goal):
-        self.state="mag_up"
-        self.mag_goal=goal
+            if self.active_flag==True:
+                try:
+                    if self.state=="standby":
+                        pass
+                    if self.state=="regenerate":
+                        self.client.regenerate()
+                    if self.state=="regulate":
+                        pass
+                        #self.client.regulate()
+                    if self.state=='ramping':
+                        if self.data['dvm_volts1']>=9.4:
+                            self.state='dwell'
+                            raise ValueError('mag_current is at max. State has been set to dwell.')
+                        if self.data['dvm_volts1']<=-0.02:
+                            self.state='standby'
+                            raise ValueError('mag_current is at minimum. State has been set to standby.')
+                       # Makes sure the current stays within acceptable bounds. 
+                            
+                            
+                        if self.ramp_step>=0:    
+                            if self.data['dvm_volts1']<=self.ramp_goal:
+                                # This will never be exact, so we need a fuzzier check.
+                                # If going up, check if dvm_volts1 is higher, if going down, do the opposite.
+                                self.state='regulate'
+                                self.ramp_step=0.0
+                                raise ValueError('Ramp goal reached. State switched to regulate.')
+                        if self.ramp_step<0:    
+                            if self.data['dvm_volts1']>=self.ramp_goal:
+                                # This will never be exact, so we need a fuzzier check.
+                                # If going up, check if dvm_volts1 is higher, if going down, do the opposite.
+                                self.state='regulate'
+                                raise ValueError('Ramp goal reached. State switched to regulate.')
+                                # stops the ramping once we get to our goal.
+                        
+                        self.client.set_pid_manual_out(self.data['pid_manual_out']+self.ramp_step)
+                        
+                    if self.state=="dwell":
+                        #make sure nothing is varying wildly.
+                        pass
+                except ValueError as e:
+                    print e
+                    self.give_flag()
+                except:
+                    self.give_flag()
+                    raise
+                    # Makes sure the flag is given back for other exceptions as well.
+            time.sleep(self.refresh_rate)

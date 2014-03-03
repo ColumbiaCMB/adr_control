@@ -101,48 +101,37 @@ class DataFile():
         self.dvm_ref2=self.nc.createVariable('dvm_ref2',np.float32,dimensions=('time',))
         self.dvm_ref3=self.nc.createVariable('dvm_ref3',np.float32,dimensions=('time',))
         
-        
-        
-        
-        self.length=0
-        
     def update(self,data):
         # Could also just not fill any data if one variable is missing.
         
         # Right now matches keys, and fills data from argument. If there is not match, fills with NaN
         # self.length makes sure all lists stay the same length (and synchronized to the timestamp).
-        
-        '''for key in self.nc.variables.keys():
-            try:
-                self.nc.variables[key][self.length]=data[key]
-            except KeyError:
-                print "Key not found. NaN inserted."
-                self.nc.variables[key][self.length]=np.nan'''
-                # Old variable assignment. I like the try-catch, but the new version works better for lists and shouldn't throw errors.
+                
+        length=len(self.time_dim)
                 
         for key in self.nc.variables.keys():
             if key in data:
                 try:
                     # Error handling in case values in the dictionary can't be converted to the correct type.
-                    self.nc.variables[key][self.length]=data[key]
+                    self.nc.variables[key][length]=data[key]
                 except ValueError as e:
                     print 'Value error in key %s. NaN inserted. Error printed below.'%(key)
                     print e
-                    self.nc.variables[key][self.length]=np.nan
+                    self.nc.variables[key][length]=np.nan
             elif key[:-1] in data:
                 # Slices to go from lists (given by data) to single variables.
                 # This now happens in the server instead, so it is no longer necessary.
                 try:
-                    self.nc.variables[key][self.length]=data[key[:-1]][int(key[-1:])]
+                    self.nc.variables[key][length]=data[key[:-1]][int(key[-1:])]
                 except ValueError as e:
                     print 'Value error in key %s. NaN inserted. Error printed below.'%(key)
                     print e
-                    self.nc.variables[key][self.length]=np.nan
+                    self.nc.variables[key][length]=np.nan
             else:
                 print "Key not found. NaN inserted."
-                self.nc.variables[key][self.length]=np.nan
+                self.nc.variables[key][length]=np.nan
                 
-        self.length+=1
+        self.sync()
         
     def close(self):
         self.nc.close()
