@@ -1,5 +1,4 @@
 import gui
-import popup
 from superplot import Superplot
 import adr_controller
 import data_logger
@@ -26,7 +25,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         super(PlotDialog, self).__init__(parent)
         
         self.sim900=Pyro4.Proxy("PYRONAME:sim900server")
-        self.controller=adr_controller.AdrController(client=self.sim900)
+        self.controller=adr_controller.AdrController(client=self.sim900,gui_input=self.message_box)
         self.data_logger=data_logger.DataFile()
         # Sets up sim900 pyro proxy and AdrController.
         
@@ -53,8 +52,8 @@ class PlotDialog(QDialog,gui.Ui_Form):
     def setupSlots(self):
         QObject.connect(self.bridge_setpoint_command_value,SIGNAL("editingFinished()"),self.set_bridge_setpoint)
         
-        QObject.connect(self.regenerate_button,SIGNAL("clicked()"), self.controller.request_regenerate)
-        QObject.connect(self.regulate_button,SIGNAL("clicked()"), self.controller.request_regulate)
+        QObject.connect(self.regenerate_button,SIGNAL("clicked()"), self.request_regenerate)
+        QObject.connect(self.regulate_button,SIGNAL("clicked()"), self.request_regulate)
         QObject.connect(self.stop_button,SIGNAL("clicked()"), self.controller.request_standby)
         
         QObject.connect(self.plotoptions,SIGNAL("activated(const QString&)"),self.plot.plot_toggle1)
@@ -113,9 +112,29 @@ class PlotDialog(QDialog,gui.Ui_Form):
         #Update plots by calling the draw function.
         self.plot.draw()
         
+    def request_regenerate(self):
+        self.controller.request_regenerate(3.0)
+        
+    def request_regulate(self):
+        self.controller.request_regulate(3.0)
+        
     def set_bridge_setpoint(self):
         self.controller.request_set_bridge_setpoint(self.bridge_setpoint_command_value.value())
         
+    def message_box(self,msg):
+        msg_box=QMessageBox()
+        msg_box.setText(msg)
+        
+        action_button=QPushButton('OK')
+        action_button.clicked.connect(self.respond_to_controller)
+        test_button=msg_box.addButton(action_button, QMessageBox.ActionRole)
+        
+        
+        #cancel_button=msg_box.addButton(QPushButton('Cancel'), QMessageBox.RejectRole)
+        msg_box.exec_()
+        
+    def respond_to_controller(self):
+        self.controller.gui_response=True
         
 def main():
     app = QApplication(sys.argv)

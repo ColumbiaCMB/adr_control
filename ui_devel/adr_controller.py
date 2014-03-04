@@ -5,7 +5,7 @@ import Pyro4
 
 
 class AdrController():
-    def __init__(self,client,get_user_input=None,startup_state="standby"):
+    def __init__(self,client,gui_input=None,startup_state="standby"):
         self.exit=False
         self.state=startup_state
         # Sets the current state. Standby by default.
@@ -18,11 +18,13 @@ class AdrController():
         self.ramp_goal=0.0
         # parameters for ramping
         
-        self.get_user_input=get_user_input
+        self.gui_input=gui_input
+        self.gui_response=False
         
         self.client=client
         
         self.loop_thread=None
+        self.command_thread=None
         self.start_loop_thread()
         # starts the loop_thread (function loop)
         
@@ -48,21 +50,61 @@ class AdrController():
             self.active_flag=False
             
     def request_user_input(self,message=''):
-        if self.get_user_input==None:
+        if self.gui_input==None:
             response=''
             while response != 'yes':
                 print message+' Type yes to continue.'
                 response=raw_input()
+            return
         else:
-            response=False
-            while response != True:
-                result=self.get_user_input
+            while self.gui_response != True:
+                self.gui_input(message)
                 # function returns true/false after popping up an alert in the GUI.
+            self.gui_response=False
+            return
+            
+    def request_regenerate(self,bridge_setpoint_value):
+        self.grab_flag()
+        if not self.active_flag:
+            return
+            
+        print '1'
+        
+        try:
+            self.start_command_thread()
+        except:
+            self.give_flag()
+            raise
+        
+    '''def request_regenerate(self,value):
+        self.request_user_input(message='Switch to Mag Cycle.')
+        self.request_user_input(message='Close heat switch.')'''
+        
+    def start_command_thread(self):
+        if self.command_thread:
+            if self.command_thread.is_alive():
+                print "loop already running"
+                return
+                
+        print '2'
+        self.command_thread=threading.Thread(target=self.regenerate_loop)
+        self.command_thread.daemon=True
+        self.command_thread.start()
+        
+    def regenerate_loop(self):
+        print '3'
+        self.magup()
+        self.wait()
+        self.demag()
+        self.wait()
+        self.request_regulate(bridge_setpoint_value)
                 
     def magup(self):
+        print '4'
         self.request_user_input(message='Switch to Mag Cycle.')
+        print '5'
         self.request_user_input(message='Close heat switch.')
-        self.ramp_to(-0.005,9.4)
+        self.ramp_to(-0.005,0.1)
         
     def wait(self, wait_time=30):
         while self.state != 'dwell':
@@ -71,6 +113,7 @@ class AdrController():
         
     def demag(self):
         self.request_user_input(message='Open heat switch.')
+        
         self.ramp_to(0.005,0.5)
         
         
@@ -89,16 +132,6 @@ class AdrController():
         self.state='regulate'
         self.client.set_state('regulate')
         
-    def request_regenerate(self,bridge_setpoint_value):
-        self.grab_flag()
-        if not self.active_flag:
-            return
-            
-        self.magup()
-        self.wait()
-        self.demag()
-        self.request_regulate(bridge_setpoint_value)
-        
     def request_pid_output_on(self):
     
         self.grab_flag()
@@ -116,7 +149,7 @@ class AdrController():
         self.grab_flag()
         if not self.active_flag:
             return
-        msg='SETP %f'%(2.95)
+        msg='SETP %f'%(bridge_setpoint_value)
         self.client.send(3,msg)
         
     def request_manual_output_on(self):
