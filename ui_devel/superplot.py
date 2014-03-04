@@ -28,7 +28,8 @@ class Superplot():
         for subplot in self.subplotlist:
             if subplot[1] != None:
                 subplot[0].cla()
-                if subplot[1]==self.parent.temp_list:
+                #if subplot[1]==self.parent.temp_list:
+                if False:
                     subplot[0].plot(self.parent.time_list,subplot[1],self.parent.time_list,self.parent.bridge_setpoint_list)
                     # Plots temperature and bridge_setpoint together.
                 else:

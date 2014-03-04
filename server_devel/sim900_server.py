@@ -182,8 +182,6 @@ class sim900Server():
             
             print "Total data loading took %f seconds" %(self.data['time']-start)
             print 'self.flag_available is %s'%(str(self.flag_available))
-            
-            #eprint self.data
         
     def fetch_dict(self):
         return self.data
@@ -240,7 +238,7 @@ class sim900Server():
         print self.communicator.query_port(3,'MOUT?')
         self.server_lock.release()
         
-    def send(self,msg,port):
+    def send(self,port,msg):
         # Generic send command.
         self.server_lock.acquire()
         self.communicator.send('xyx')

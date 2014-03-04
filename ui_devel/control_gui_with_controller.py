@@ -1,4 +1,5 @@
-from gui import Ui_Form
+import gui
+import popup
 from superplot import Superplot
 import adr_controller
 import data_logger
@@ -19,7 +20,7 @@ import Pyro4
 
 import sys
 
-class PlotDialog(QDialog,Ui_Form):
+class PlotDialog(QDialog,gui.Ui_Form):
     # Connects GUI pieces to functions. Grabs data from sim900 and updates gui.
     def __init__(self, qApp, parent=None):
         super(PlotDialog, self).__init__(parent)
@@ -28,7 +29,6 @@ class PlotDialog(QDialog,Ui_Form):
         self.controller=adr_controller.AdrController(client=self.sim900)
         self.data_logger=data_logger.DataFile()
         # Sets up sim900 pyro proxy and AdrController.
-        
         
         self.__app = qApp
         self.setupUi(self)
@@ -115,6 +115,7 @@ class PlotDialog(QDialog,Ui_Form):
         
     def set_bridge_setpoint(self):
         self.controller.request_set_bridge_setpoint(self.bridge_setpoint_command_value.value())
+        
         
 def main():
     app = QApplication(sys.argv)
