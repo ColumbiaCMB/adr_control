@@ -85,7 +85,14 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.magnet_current_value.setText(str(current))
         voltage = data['dvm_volts0']
         self.magnet_voltage_value.setText(str(voltage))
+        
         self.pid_output_value.setText(str(data['pid_output_mon']))
+        self.pid_setpoint_value.setText(str(data['pid_setpoint']))
+        self.pid_manual_output_value.setText(str(data['pid_manual_out']))
+        if data['pid_manual_status'] == 1:
+            self.pid_mode_value.setText('PID')
+        if data['pid_manual_status'] == 0:
+            self.pid_mode_value.setText('MAN')
         
         #Update Temperature and Setpoint Lists
         if len(self.temp_list) < 50:

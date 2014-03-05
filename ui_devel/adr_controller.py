@@ -17,7 +17,7 @@ class AdrController():
         self.ramp_step=0.0
         self.ramp_goal=0.0
         self.pid_goal=0.0
-        self.pid_step=0.005
+        self.pid_step=0.001
         # parameters for ramping current and pid_setpoint
         
         self.gui_input=gui_input
@@ -55,7 +55,7 @@ class AdrController():
                     
                     if self.state=="regulate":
                     
-                        if self.data['dvm_volts1']<0.2:
+                        if self.data['dvm_volts1']<0.03:
                             print 'Current too low to regulate. Ramping to zero current.'
                             self.ramp_to(0.005,0.0)
                             
@@ -65,7 +65,7 @@ class AdrController():
                             #ramp setpoint up
                             msg='SETP %f'%(self.data['pid_setpoint']+(self.pid_step*self.refresh_rate))
                             self.client.send(3,msg)
-                        if difference <0.01:
+                        if difference < -0.01:
                             #ramp setpoint down.
                             msg='SETP %f'%(self.data['pid_setpoint']-(self.pid_step*self.refresh_rate))
                             self.client.send(3,msg)
@@ -76,7 +76,7 @@ class AdrController():
                         if self.data['dvm_volts1']>=9.7:
                             self.state='dwell'
                             raise ValueError('mag_current is at max. State has been set to dwell.')
-                        if self.data['dvm_volts1']<=-0.01:
+                        if self.data['dvm_volts1']<=-0.1:
                             self.state='standby'
                             raise ValueError('mag_current is at minimum. State has been set to standby.')
                             
@@ -243,13 +243,22 @@ class AdrController():
 
     def request_pid_output_on(self):
         # Private method.
+        
+        self.data=self.client.fetch_dict()
+        # Gets fresh data
+        
+        msg='SETP %f'%(self.data['pid_measure_mon'])
+        # matches input voltage at front panel, not data from bridge, since there can be a voltage offset.
+        # Note that there is a small ~0.05 offset between pid setpoint and bridge_temperature.
+        print msg
+        self.client.send(3,msg)
+        
+        time.sleep(0.1)
+            
         if self.data['pid_manual_status']==0:
-            msg='SETP %f'%(self.data['bridge_temp_value'])
-            self.client.send(3,msg)
-            # Sets the PID setpoint to the current bridge_temperature.
             
             self.client.send(3,'AMAN 1')
-            # Turns manual output on.
+            # Turns pid output on.
         else:
             print 'Output mode already PID.'
             
@@ -270,16 +279,22 @@ class AdrController():
         
     def request_manual_output_on(self):
         # Private method.
+        
+        self.data=self.client.fetch_dict()
+        # Gets fresh data
+        output_now=self.data['pid_output_mon']
+        # Checks current output.
+        msg='MOUT %f'%(output_now)
+        print msg
+        self.client.send(3,msg)
+        # Sets manual output to that output.
+        
+        time.sleep(0.1)
+        
         if self.data['pid_manual_status']==1:
             # If the mode is in PID control...
-            output_now=self.data['pid_output_mon']
-            # Checks current output.
-            msg='MOUT %f'%(output_now)
-            print msg
-            '''self.client.send(3,msg)
-            # Sets manual output to that output.
             self.client.send(3,'AMAN 0')
-            # Turns manual output on.'''
+            # Turns manual output on.
         else:
             print 'Output mode already manual.'
             

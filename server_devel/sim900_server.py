@@ -33,8 +33,6 @@ downstairs_command_dictionary={
                                         {'command':'SETP?','name':'pid_setpoint','scaling':1.0},
                                         {'command':'MMON?','name':'pid_measure_mon','scaling':1.0},
                                         {'command':'EMON?','name':'pid_error_mon','scaling':1.0},
-                                        #{'command':'badcommand','name':'pid_error_mon','scaling':1.0},
-                                        # for testing errors
                                         {'command':'OMON?','name':'pid_output_mon','scaling':1.0},
                                         {'command':'PCTL?','name':'pid_propor_on','scaling':1.0},
                                         {'command':'ICTL?','name':'pid_integral_on','scaling':1.0},
