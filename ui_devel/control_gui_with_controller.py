@@ -14,6 +14,7 @@ import matplotlib
 import numpy as np
 import IPython
 import time
+import threading
 
 import Pyro4
 
@@ -25,7 +26,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         super(PlotDialog, self).__init__(parent)
         
         self.sim900=Pyro4.Proxy("PYRONAME:sim900server")
-        self.controller=adr_controller.AdrController(client=self.sim900,gui_input=self.message_box)
+        self.controller=adr_controller.AdrController(client=self.sim900,gui_input=True)
         self.data_logger=data_logger.DataFile()
         # Sets up sim900 pyro proxy and AdrController.
         
@@ -33,6 +34,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.setupUi(self)
         self.setupLists()
         self.setupTimer()
+        self.setupTimer2()
         
         self.plot=Superplot(self,[self.plotoptions,self.plotoptions2])
         self.plotLayout.insertWidget(0,self.plot.canvas)
@@ -48,6 +50,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(3000)
+    
         
     def setupSlots(self):
         QObject.connect(self.bridge_setpoint_command_value,SIGNAL("editingFinished()"),self.set_bridge_setpoint)
@@ -119,22 +122,34 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.controller.request_regulate(3.0)
         
     def set_bridge_setpoint(self):
-        self.controller.request_set_bridge_setpoint(self.bridge_setpoint_command_value.value())
+        #self.controller.request_set_bridge_setpoint(self.bridge_setpoint_command_value.value())
+        pass
         
-    def message_box(self,msg):
+    def raise_message_box(self,msg):
         msg_box=QMessageBox()
         msg_box.setText(msg)
+        msg_box.setModal(False)
         
         action_button=QPushButton('OK')
         action_button.clicked.connect(self.respond_to_controller)
         test_button=msg_box.addButton(action_button, QMessageBox.ActionRole)
-        
-        
         #cancel_button=msg_box.addButton(QPushButton('Cancel'), QMessageBox.RejectRole)
+        
         msg_box.exec_()
         
     def respond_to_controller(self):
         self.controller.gui_response=True
+        
+    def check_for_message(self):
+        print 'check for controller message'
+        if self.controller.message_for_gui!=None:
+            'controller message found'
+            self.raise_message_box(self.controller.message_for_gui)
+                
+    def setupTimer2(self):
+        self.timer2 = QTimer()
+        self.timer2.timeout.connect(self.check_for_message)
+        self.timer2.start(1000)
         
 def main():
     app = QApplication(sys.argv)

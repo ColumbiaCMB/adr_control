@@ -5,7 +5,7 @@ import Pyro4
 
 
 class AdrController():
-    def __init__(self,client,gui_input=None,startup_state="standby"):
+    def __init__(self,client,gui_input=False,startup_state="standby"):
         self.exit=False
         self.state=startup_state
         # Sets the current state. Standby by default.
@@ -16,19 +16,25 @@ class AdrController():
         self.refresh_rate=3
         self.ramp_step=0.0
         self.ramp_goal=0.0
-        # parameters for ramping
+        self.pid_goal=0.0
+        self.pid_step=0.005
+        # parameters for ramping current and pid_setpoint
         
         self.gui_input=gui_input
         self.gui_response=False
+        self.message_for_gui=None
         
         self.client=client
         
         self.loop_thread=None
         self.command_thread=None
         self.start_loop_thread()
-        # starts the loop_thread (function loop)
+        
+        
+### Loop thread and function loop ###
         
     def start_loop_thread(self):
+    # starts the loop_thread (function loop)
         if self.loop_thread:
             if self.loop_thread.is_alive():
                 print "loop already running"
@@ -36,6 +42,76 @@ class AdrController():
         self.loop_thread=threading.Thread(target=self.function_loop)
         self.loop_thread.daemon=True
         self.loop_thread.start()
+        
+    def function_loop(self):
+        while True:
+            if self.exit==True:
+                return 0
+                
+            self.data=self.client.fetch_dict()
+            
+            if self.active_flag==True:
+                try:
+                    
+                    if self.state=="regulate":
+                    
+                        if self.data['dvm_volts1']<0.2:
+                            print 'Current too low to regulate. Ramping to zero current.'
+                            self.ramp_to(0.005,0.0)
+                            
+                    
+                        difference=self.pid_goal - self.data['pid_setpoint']
+                        if difference >=0.01:
+                            #ramp setpoint up
+                            msg='SETP %f'%(self.data['pid_setpoint']+(self.pid_step*self.refresh_rate))
+                            self.client.send(3,msg)
+                        if difference <0.01:
+                            #ramp setpoint down.
+                            msg='SETP %f'%(self.data['pid_setpoint']-(self.pid_step*self.refresh_rate))
+                            self.client.send(3,msg)
+                        # if current goes below some value (0.15) end regulation
+                        
+                    if self.state=='ramping':
+                        # Makes sure the current stays within acceptable bounds. 
+                        if self.data['dvm_volts1']>=9.7:
+                            self.state='dwell'
+                            raise ValueError('mag_current is at max. State has been set to dwell.')
+                        if self.data['dvm_volts1']<=-0.01:
+                            self.state='standby'
+                            raise ValueError('mag_current is at minimum. State has been set to standby.')
+                            
+                        if self.ramp_step>=0:    
+                            if self.data['dvm_volts1']<=self.ramp_goal:
+                                # If going down, we stop once we are at or below our goal.
+                                self.state='dwell'
+                                raise ValueError('Ramp goal reached. State switched to dwell.')
+                        if self.ramp_step<0:    
+                            if self.data['dvm_volts1']>=self.ramp_goal:
+                                # If going up, we stop once we are at or above our goal.
+                                self.state='dwell'
+                                raise ValueError('Ramp goal reached. State switched to dwell.')
+                        
+                        #self.client.set_pid_manual_out(self.data['pid_manual_out']+self.ramp_step)
+                        msg='MOUT %f'%(self.data['pid_manual_out']+self.ramp_step)
+                        self.client.send(3,msg)
+                        
+                    if self.state=="dwell":
+                        pass
+                    if self.state=="standby":
+                        pass
+                        
+                    
+                except ValueError as e:
+                    # Deals with the system reaching certain values.
+                    print e
+                    self.give_flag()
+                except:
+                    self.give_flag()
+                    raise
+                    # Makes sure the flag is given back for other exceptions as well, but doesn't catch them.
+            time.sleep(self.refresh_rate)
+        
+### Flag Handling ###
         
     def grab_flag(self):
         if self.active_flag==True:
@@ -49,36 +125,36 @@ class AdrController():
             self.client.give_flag()
             self.active_flag=False
             
+### User Input ###
+            
     def request_user_input(self,message=''):
-        if self.gui_input==None:
+        if self.gui_input==False:
             response=''
             while response != 'yes':
                 print message+' Type yes to continue.'
                 response=raw_input()
             return
         else:
+            self.message_for_gui=message
             while self.gui_response != True:
-                self.gui_input(message)
+                pass
                 # function returns true/false after popping up an alert in the GUI.
+            self.message_for_gui=None
             self.gui_response=False
             return
+            
+### Regenerate Thread and Methods ###
             
     def request_regenerate(self,bridge_setpoint_value):
         self.grab_flag()
         if not self.active_flag:
             return
-            
-        print '1'
         
         try:
             self.start_command_thread()
         except:
             self.give_flag()
             raise
-        
-    '''def request_regenerate(self,value):
-        self.request_user_input(message='Switch to Mag Cycle.')
-        self.request_user_input(message='Close heat switch.')'''
         
     def start_command_thread(self):
         if self.command_thread:
@@ -92,12 +168,16 @@ class AdrController():
         self.command_thread.start()
         
     def regenerate_loop(self):
+    
+        self.request_user_input(message='Switch to Mag Cycle.')
+        self.request_user_input(message='Close heat switch.')
+        
         print '3'
-        self.magup()
+        '''self.magup()
         self.wait()
         self.demag()
         self.wait()
-        self.request_regulate(bridge_setpoint_value)
+        self.request_regulate(bridge_setpoint_value)'''
                 
     def magup(self):
         print '4'
@@ -116,56 +196,8 @@ class AdrController():
         
         self.ramp_to(0.005,0.5)
         
+### Ramping methods ###
         
-    def request_standby(self):
-        self.state='standby'
-        self.client.set_state('standby')
-        
-    def request_regulate(self,bridge_setpoint_value):
-    
-        self.grab_flag()
-        if not self.active_flag:
-            return
-    
-        self.request_set_bridge_setpoint(bridge_setpoint_value)
-        self.request_pid_output_on()
-        self.state='regulate'
-        self.client.set_state('regulate')
-        
-    def request_pid_output_on(self):
-    
-        self.grab_flag()
-        if not self.active_flag:
-            return
-    
-        if self.data['pid_manual_status']==0:
-            self.client.send(3,'AMAN 1')
-            # Turns manual output on.
-        else:
-            print 'Output mode already PID.'
-            
-    def request_set_bridge_setpoint(self,bridge_setpoint_value):
-    
-        self.grab_flag()
-        if not self.active_flag:
-            return
-        msg='SETP %f'%(bridge_setpoint_value)
-        self.client.send(3,msg)
-        
-    def request_manual_output_on(self):
-        # Note that this shouldn't be used directly by the user. Method ramp_to has the correct error-catching.
-        if self.data['pid_manual_status']==1:
-            # If the mode is in PID control...
-            output_now=self.data['pid_output_mon']
-            # Checks current output.
-            msg='MOUT %f'%(output_now)
-            self.client.send(3,msg)
-            # Sets manual output to that output.
-            self.client.send(3,'AMAN 0')
-            # Turns manual output on.
-        else:
-            print 'Output mode already manual.'
-            
     def ramp_to(self,rate,goal):
     
         # Do error checking here to make sure I can ramp. Check server state to make sure it isn't already ramping.
@@ -206,53 +238,49 @@ class AdrController():
             # NOT after this transaction otherwise.
             self.give_flag()
             raise
-        
-    def function_loop(self):
-        while True:
-            if self.exit==True:
-                return 0
-                
-            self.data=self.client.fetch_dict()
             
-            if self.active_flag==True:
-                try:
-                    if self.state=="standby":
-                        pass
-                    if self.state=="regulate":
-                        # if current goes below some value (0.15) end regulation
-                        pass
-                    if self.state=="dwell":
-                        pass
-                        
-                    if self.state=='ramping':
-                    # Makes sure the current stays within acceptable bounds. 
-                        if self.data['dvm_volts1']>=9.7:
-                            self.state='dwell'
-                            raise ValueError('mag_current is at max. State has been set to dwell.')
-                        if self.data['dvm_volts1']<=-0.1:
-                            self.state='standby'
-                            raise ValueError('mag_current is at minimum. State has been set to standby.')
-                            
-                        if self.ramp_step>=0:    
-                            if self.data['dvm_volts1']<=self.ramp_goal:
-                                # If going down, we stop once we are at or below our goal.
-                                self.state='dwell'
-                                raise ValueError('Ramp goal reached. State switched to dwell.')
-                        if self.ramp_step<0:    
-                            if self.data['dvm_volts1']>=self.ramp_goal:
-                                # If going up, we stop once we are at or above our goal.
-                                self.state='dwell'
-                                raise ValueError('Ramp goal reached. State switched to dwell.')
-                        
-                        self.client.set_pid_manual_out(self.data['pid_manual_out']+self.ramp_step)
-                        
-                    
-                except ValueError as e:
-                    # Deals with the system reaching certain values.
-                    print e
-                    self.give_flag()
-                except:
-                    self.give_flag()
-                    raise
-                    # Makes sure the flag is given back for other exceptions as well, but doesn't catch them.
-            time.sleep(self.refresh_rate)
+### Regulate Methods ###
+
+    def request_pid_output_on(self):
+        # Private method.
+        if self.data['pid_manual_status']==0:
+            msg='SETP %f'%(self.data['bridge_temp_value'])
+            self.client.send(3,msg)
+            # Sets the PID setpoint to the current bridge_temperature.
+            
+            self.client.send(3,'AMAN 1')
+            # Turns manual output on.
+        else:
+            print 'Output mode already PID.'
+            
+    def request_regulate(self,pid_setpoint_goal):
+        self.grab_flag()
+        if not self.active_flag:
+            return
+        self.request_pid_output_on()
+        self.pid_goal=pid_setpoint_goal
+        self.state='regulate'
+        self.client.set_state('regulate')
+
+### Other ###
+        
+    def request_standby(self):
+        self.state='standby'
+        self.client.set_state('standby')
+        
+    def request_manual_output_on(self):
+        # Private method.
+        if self.data['pid_manual_status']==1:
+            # If the mode is in PID control...
+            output_now=self.data['pid_output_mon']
+            # Checks current output.
+            msg='MOUT %f'%(output_now)
+            print msg
+            '''self.client.send(3,msg)
+            # Sets manual output to that output.
+            self.client.send(3,'AMAN 0')
+            # Turns manual output on.'''
+        else:
+            print 'Output mode already manual.'
+            
+    
