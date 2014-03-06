@@ -26,7 +26,8 @@ downstairs_command_dictionary={
                                         {'command':'VKEL?','name':'bridge_volts_kelvin','scaling':1.0},
                                         {'command':'AMAN?','name':'bridge_output_mode','scaling':1.0},
                                         {'command':'AOUT?','name':'bridge_output_value','scaling':1.0},
-                                        {'command':'OVCR?','name':'bridge_overload_status','scaling':1.0}
+                                        {'command':'OVCR?','name':'bridge_overload_status','scaling':1.0},
+                                        {'command':'AGAI?','name':'bridge_autorange_gain','scaling':1.0}
                                         ],
                                     3:
                                         [
@@ -184,37 +185,12 @@ class sim900Server():
             print 'self.flag_available is %s'%(str(self.flag_available))
             
             if self.data['bridge_overload_status']>0:
-                self.server_lock.acquire()
-                try:
-                    self.fixing=True
-                    self.fix_bridge_overload()
-                except:
-                    raise
-                finally:
-                    self.server_lock.release()
-                
-    def fix_bridge_overload(self):
-    # Deals with bridge_overloads by setting on the autoranging of gain.
-    # Note that send_direct and query_port_direct are used since this method is already wrapped with locks.
-    
-    # If in PID control, this needs to set it to manual at the current output, then switch back to PID if necessary.
-    
-        print 'bridge_overload detected, fixing now.'
-    
-        overload=1
-        while overload != 0:
-            print 'Turning AGAI ON'
-            self.send_direct(1,'AGAI ON')
-            result=1
-            while result != 0:
-                # waits until AGAI goes off (which it should do automatically)
-                time.sleep(5)
-                # This isn't a fast process, and there's no need to bombard the sim900 with queries.
-                result=int(self.query_port_direct(1,'AGAI?'))
-                print 'AGAI is %d'%(result)
-            overload=int(self.query_port_direct(1,'OVCR?'))
-            print 'OVCR is %d'%(overload)
-        print 'overload fixed.'
+                print 'Bridge is overloaded'
+                if self.data['bridge_autorange_gain']!=1:
+                    print 'Sending correction'
+                    self.send(1,'AGAI ON')
+                else:
+                    print 'Correction in progress'
         
     def fetch_dict(self):
         return self.data

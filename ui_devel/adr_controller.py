@@ -53,11 +53,9 @@ class AdrController():
             if self.active_flag==True:
                 try:
                 
-                    if self.client.fixing==True:
-                    # The server is fixing bridge_overload_status and the client should chill.
-                    # Try again in a bit.
-                        time.sleep(self.refresh_rate)
-                        continue
+                    if self.data['bridge_overload_status']>0 or self.data['bridge_autorange_gain']>0:
+                        fixing_flag=True
+                        # include an if fixing flag: in regulate and wherever else is necessary.
                     
                     if self.state=="regulate":
                     
