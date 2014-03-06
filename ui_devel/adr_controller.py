@@ -53,29 +53,41 @@ class AdrController():
             if self.active_flag==True:
                 try:
                 
-                    if self.client.fixing==True:
-                    # The server is fixing bridge_overload_status and the client should chill.
-                    # Try again in a bit.
-                        time.sleep(self.refresh_rate)
-                        continue
+                    fixing_flag = (self.data['bridge_overload_status']>0) or (self.data['bridge_autorange_gain']>0)
+                    # tells whether the bridge is using AGAI to fix and overload or not.
                     
                     if self.state=="regulate":
                     
-                        if self.data['dvm_volts1']<0.03:
-                            print 'Current too low to regulate. Ramping to zero current.'
-                            self.ramp_to(0.005,0.0)
-                            
+                        if not fixing_flag:
+                        # Business as usual.
+                        
+                            if self.data['pid_manual_status']==0:
+                                # Switches from the manual output that happens during an overload back to PID control
+                                # once the fixing is done.
+                                print 'Switching to PID output.'
+                                self.request_pid_output_on()
                     
-                        difference=self.pid_goal - self.data['pid_setpoint']
-                        if difference >=0.01:
-                            #ramp setpoint up
-                            msg='SETP %f'%(self.data['pid_setpoint']+(self.pid_step*self.refresh_rate))
-                            self.client.send(3,msg)
-                        if difference < -0.01:
-                            #ramp setpoint down.
-                            msg='SETP %f'%(self.data['pid_setpoint']-(self.pid_step*self.refresh_rate))
-                            self.client.send(3,msg)
-                        # if current goes below some value (0.15) end regulation
+                            if self.data['dvm_volts1']<0.03:
+                                print 'Current too low to regulate. Ramping to zero current.'
+                                self.ramp_to(0.005,0.0)
+                                
+                        
+                            difference=self.pid_goal - self.data['pid_setpoint']
+                            if difference >=0.01:
+                                #ramp setpoint up
+                                msg='SETP %f'%(self.data['pid_setpoint']+(self.pid_step*self.refresh_rate))
+                                self.client.send(3,msg)
+                            if difference < -0.01:
+                                #ramp setpoint down.
+                                msg='SETP %f'%(self.data['pid_setpoint']-(self.pid_step*self.refresh_rate))
+                                self.client.send(3,msg)
+                                
+                        if fixing_flag:
+                            if self.data['pid_manual_status']==1:
+                                print 'Switching to manual output until autorange gain finished.'
+                                self.request_manual_output_on()
+                                # Holds the output constant until the overload is fixed.
+                            
                         
                     if self.state=='ramping':
                         # Makes sure the current stays within acceptable bounds. 
