@@ -148,6 +148,7 @@ class AdrController():
     def request_regenerate(self,bridge_setpoint_value):
         self.grab_flag()
         if not self.active_flag:
+            print 'Controller does not have active_flag.'
             return
         
         try:
@@ -204,6 +205,7 @@ class AdrController():
         
         self.grab_flag()
         if not self.active_flag:
+            print 'Controller does not have active_flag.'
             return
         # Tries to grab the active flag. If it doesn't get it, it ends.
         # The flag will be given back once the ramping is complete.
@@ -247,13 +249,31 @@ class AdrController():
         self.data=self.client.fetch_dict()
         # Gets fresh data
         
-        msg='SETP %f'%(self.data['pid_measure_mon'])
+        output_now=self.data['pid_measure_mon']
+        msg='SETP %f'%(output_now)
         # matches input voltage at front panel, not data from bridge, since there can be a voltage offset.
         # Note that there is a small ~0.05 offset between pid setpoint and bridge_temperature.
-        print msg
+        
+        # There is still an offset between pid_setpoint and pid_measure_mon (less than with bridge_temperature), which initially causes
+        # a small jolt to the output (and thus to the incoming measure_mon a small time later)
         self.client.send(3,msg)
         
-        time.sleep(0.1)
+        result=''
+        # Grab new value and compare them to make sure the command went through.
+        start=time.time()
+        # Grab new value and compare them to make sure the command went through.
+        difference=1
+        start=time.time()
+        while difference>0.01:
+            result=float(self.client.query_port(3,'SETP?'))
+            print result
+            print output_now
+            difference=abs(result-output_now)
+            tic=time.time()
+            if tic-start>2.0:
+                print 'Reponse for request_manual_output timed out.'
+                return
+            
             
         if self.data['pid_manual_status']==0:
             
@@ -265,6 +285,7 @@ class AdrController():
     def request_regulate(self,pid_setpoint_goal):
         self.grab_flag()
         if not self.active_flag:
+            print 'Controller does not have active_flag.'
             return
         self.request_pid_output_on()
         self.pid_goal=pid_setpoint_goal
@@ -285,11 +306,21 @@ class AdrController():
         output_now=self.data['pid_output_mon']
         # Checks current output.
         msg='MOUT %f'%(output_now)
-        print msg
         self.client.send(3,msg)
         # Sets manual output to that output.
         
-        time.sleep(0.1)
+        # Grab new value and compare them to make sure the command went through.
+        difference=1
+        start=time.time()
+        while difference>0.01:
+            result=float(self.client.query_port(3,'MOUT?'))
+            print result
+            print output_now
+            difference=abs(result-output_now)
+            tic=time.time()
+            if tic-start>2.0:
+                print 'Reponse for request_manual_output timed out.'
+                return
         
         if self.data['pid_manual_status']==1:
             # If the mode is in PID control...

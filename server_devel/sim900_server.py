@@ -242,8 +242,29 @@ class sim900Server():
         self.communicator.send('xyx')
         new_msg='SNDT %d, "%s"'%(port,msg)
         self.communicator.send(new_msg)
-        #print 'SNDT 3, "MOUT %f"'
         self.server_lock.release()
+        
+    def query_port(self,port,msg):
+        # For querying ports when not in CONN mode.
+        # Originally, this was used to populate the dictionary rather than the CONN method.
+        # However it was slower (by a factor of 2).
+        # It is simpler and faster for individual queries, however.
+        self.server_lock.acquire()
+        self.communicator.send('xyx')
+        result=self.communicator.query_port(port,msg)
+        
+        if port in self.command_dictionary:
+            for each in self.command_dictionary[port]:
+                if each['command']==msg:
+                    self.data[each['name']]=float(result)
+                    print 'out of date value updated'
+        # If the result belongs in self.data, the value is updated. Query_port is often used for verification after setting
+        # pid_manual_out or pid_setpoint to a new value. It takes ~2.5 seconds for the server to 'catch up' to this reset on its own,
+        # which causes problems when we rely on the new information (such as ramping up or down).
+        # The solution is to manually update the server's data dictionary.
+                    
+        self.server_lock.release()
+        return result
         
 
 def main():
