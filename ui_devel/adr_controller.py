@@ -52,6 +52,12 @@ class AdrController():
             
             if self.active_flag==True:
                 try:
+                
+                    if self.client.fixing==True:
+                    # The server is fixing bridge_overload_status and the client should chill.
+                    # Try again in a bit.
+                        time.sleep(self.refresh_rate)
+                        continue
                     
                     if self.state=="regulate":
                     
@@ -328,5 +334,3 @@ class AdrController():
             # Turns manual output on.
         else:
             print 'Output mode already manual.'
-            
-    

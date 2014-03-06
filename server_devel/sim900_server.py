@@ -25,7 +25,8 @@ downstairs_command_dictionary={
                                         {'command':'VOHM?','name':'bridge_volts_ohms','scaling':1.0},
                                         {'command':'VKEL?','name':'bridge_volts_kelvin','scaling':1.0},
                                         {'command':'AMAN?','name':'bridge_output_mode','scaling':1.0},
-                                        {'command':'AOUT?','name':'bridge_output_value','scaling':1.0}
+                                        {'command':'AOUT?','name':'bridge_output_value','scaling':1.0},
+                                        {'command':'OVCR?','name':'bridge_overload_status','scaling':1.0}
                                         ],
                                     3:
                                         [
@@ -99,6 +100,7 @@ class sim900Server():
         self.start_loop_thread()
         
         self.state=0
+        self.fixing=False
         
         self.flag_available=True
         
@@ -180,6 +182,39 @@ class sim900Server():
             
             print "Total data loading took %f seconds" %(self.data['time']-start)
             print 'self.flag_available is %s'%(str(self.flag_available))
+            
+            if self.data['bridge_overload_status']>0:
+                self.server_lock.acquire()
+                try:
+                    self.fixing=True
+                    self.fix_bridge_overload()
+                except:
+                    raise
+                finally:
+                    self.server_lock.release()
+                
+    def fix_bridge_overload(self):
+    # Deals with bridge_overloads by setting on the autoranging of gain.
+    # Note that send_direct and query_port_direct are used since this method is already wrapped with locks.
+    
+    # If in PID control, this needs to set it to manual at the current output, then switch back to PID if necessary.
+    
+        print 'bridge_overload detected, fixing now.'
+    
+        overload=1
+        while overload != 0:
+            print 'Turning AGAI ON'
+            self.send_direct(1,'AGAI ON')
+            result=1
+            while result != 0:
+                # waits until AGAI goes off (which it should do automatically)
+                time.sleep(5)
+                # This isn't a fast process, and there's no need to bombard the sim900 with queries.
+                result=int(self.query_port_direct(1,'AGAI?'))
+                print 'AGAI is %d'%(result)
+            overload=int(self.query_port_direct(1,'OVCR?'))
+            print 'OVCR is %d'%(overload)
+        print 'overload fixed.'
         
     def fetch_dict(self):
         return self.data
@@ -226,46 +261,53 @@ class sim900Server():
             raise
         finally:
             self.server_lock.release()
-
-
-    def set_pid_manual_out(self,output):
-        self.server_lock.acquire()
-        self.communicator.send('xyx')
-        msg = 'SNDT 3, "MOUT %f"'%(output)
-        self.communicator.send(msg)
-        print self.communicator.query_port(3,'MOUT?')
-        self.server_lock.release()
         
-    def send(self,port,msg):
-        # Generic send command.
-        self.server_lock.acquire()
+    def send_direct(self,port,msg):
+        # Sends directly. Use only once the lock is acquired.
         self.communicator.send('xyx')
         new_msg='SNDT %d, "%s"'%(port,msg)
         self.communicator.send(new_msg)
-        self.server_lock.release()
+        
+        
+    def send(self,port,msg):
+        # Wraps send_direct in locks, makes sure locks are released.
+        self.server_lock.acquire()
+        try:
+            self.send_direct(port,msg)
+        except:
+            raise
+        finally:
+            self.server_lock.release()
         
     def query_port(self,port,msg):
+        # Wraps query_port_direct in locks, makes sure locks are released.
         # For querying ports when not in CONN mode.
         # Originally, this was used to populate the dictionary rather than the CONN method.
         # However it was slower (by a factor of 2).
         # It is simpler and faster for individual queries, however.
         self.server_lock.acquire()
+        try:
+            result=self.query_port_direct(port,msg)
+            return result
+        except:
+            raise
+        finally:
+            self.server_lock.release()
+            
+    def query_port_direct(self,port,msg):
+        # Query port directly. Use only once lock is acquired.
         self.communicator.send('xyx')
         result=self.communicator.query_port(port,msg)
-        
         if port in self.command_dictionary:
             for each in self.command_dictionary[port]:
                 if each['command']==msg:
                     self.data[each['name']]=float(result)
                     print 'out of date value updated'
+        return result
         # If the result belongs in self.data, the value is updated. Query_port is often used for verification after setting
         # pid_manual_out or pid_setpoint to a new value. It takes ~2.5 seconds for the server to 'catch up' to this reset on its own,
         # which causes problems when we rely on the new information (such as ramping up or down).
         # The solution is to manually update the server's data dictionary.
-                    
-        self.server_lock.release()
-        return result
-        
 
 def main():
     sim900=sim900Server(hostname="192.168.1.152")
