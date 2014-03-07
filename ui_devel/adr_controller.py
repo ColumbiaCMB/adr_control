@@ -56,6 +56,14 @@ class AdrController():
                     fixing_flag = (self.data['bridge_overload_status']>0) or (self.data['bridge_autorange_gain']>0)
                     # tells whether the bridge is using AGAI to fix and overload or not.
                     
+                    if not fixing_flag and self.data['bridge_temp_value']>6:
+                        # Temperature check.
+                        print 'Temperature too high, ramping current to zero.'
+                        self.ramp_goal=0.0
+                        self.ramp_step=0.01
+                        # If temperature is above 6K and we are below zero current... something is very odd.
+                        self.state='ramping'
+                    
                     if self.state=="regulate":
                     
                         if not fixing_flag:
@@ -68,13 +76,16 @@ class AdrController():
                                 self.request_pid_output_on()
                     
                             if self.data['dvm_volts1']<0.03:
+                            
+                            # Change this to average the last ~10 points or something similar.
+                            # How do I do this without looking at the logged data? Keep list? Think a bit.
                                 print 'Current too low to regulate. Ramping to zero current.'
-                                self.ramp_to(0.005,0.0)
+                                self.ramp_to(0.0,0.01)
                                 
                         
                             difference=self.pid_goal - self.data['pid_setpoint']
                             if difference >=0.01:
-                                #ramp setpoint up
+                                #ramp setpoint upp_bridge = data['bridge_temp_value']
                                 msg='SETP %f'%(self.data['pid_setpoint']+(self.pid_step*self.refresh_rate))
                                 self.client.send(3,msg)
                             if difference < -0.01:
@@ -163,55 +174,62 @@ class AdrController():
             
 ### Regenerate Thread and Methods ###
             
-    def request_regenerate(self,bridge_setpoint_value):
+    def request_regenerate(self,pid_setpoint_goal=2.5, peak_current=1.0, ramp_rate_up=-0.05, ramp_rate_down=0.05):
+    
+    # Changing this to change pid_setpoint_goal so it has input
+    
+        if self.state!='standby':
+            print 'To regenerate, the controller must be in standby mode.'
+            return
+    
         self.grab_flag()
         if not self.active_flag:
             print 'Controller does not have active_flag.'
             return
         
         try:
-            self.start_command_thread()
+            
+            self.start_command_thread(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down)
         except:
             self.give_flag()
             raise
         
-    def start_command_thread(self):
+    def start_command_thread(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down):
         if self.command_thread:
             if self.command_thread.is_alive():
                 print "loop already running"
                 return
                 
-        print '2'
-        self.command_thread=threading.Thread(target=self.regenerate_loop)
+        self.command_thread=threading.Thread(target=self.regenerate_loop,args=(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down))
         self.command_thread.daemon=True
         self.command_thread.start()
         
-    def regenerate_loop(self):
+    def regenerate_loop(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down):
     
-        self.magup()
+        self.magup(peak_current,ramp_rate_up)
         self.wait()
-        self.demag()
+        self.demag(ramp_rate_down)
         self.wait()
-        self.request_regulate(bridge_setpoint_value)
+        self.request_regulate(pid_setpoint_goal)
                 
-    def magup(self):
+    def magup(self,peak_current,ramp_rate_up):
         self.request_user_input(message='Switch to Mag Cycle.')
         self.request_user_input(message='Close heat switch.')
-        self.ramp_to(-0.005,0.1)
+        self.ramp_to(peak_current,ramp_rate_up)
         
     def wait(self, wait_time=30):
         while self.state != 'dwell':
             time.sleep(30)
         time.sleep(wait_time)
         
-    def demag(self):
+    def demag(self,ramp_rate_down):
         self.request_user_input(message='Open heat switch.')
         
-        self.ramp_to(0.005,0.5)
+        self.ramp_to(0.06,ramp_rate_down)
         
 ### Ramping methods ###
         
-    def ramp_to(self,rate,goal):
+    def ramp_to(self,goal,rate=-0.01):
     
         # Do error checking here to make sure I can ramp. Check server state to make sure it isn't already ramping.
         

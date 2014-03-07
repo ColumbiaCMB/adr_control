@@ -213,7 +213,7 @@ class sim900Server():
         
     # These methods are used to coordinate with the controller.
         
-    def regenerate(self):
+    def easy_test(self):
         # Just a test that is very easy to observe (all PID lights go on and off)
         
         self.server_lock.acquire()

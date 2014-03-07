@@ -17,41 +17,54 @@ class Superplot():
         self.parent=parent
         self.canvas.setParent(self.parent)
         
-        self.current_list=[None,None]
-        self.subplotlist=[]
-        self.control_buttons=control_buttons
         
-        self.subplotlist.append([self.fig.add_subplot(211),self.current_list[0],control_buttons[0]])
-        self.subplotlist.append([self.fig.add_subplot(212),self.current_list[1],control_buttons[1]])
-            
+        self.subplotlist=[]
+        
+        self.control_button_list=control_buttons
+        
+        self.current_list=[None,None]
+        
+        self.line1=None
+        self.line2=None
+        self.line_list=[self.line1,self.line2]
+        
+        self.axes1=self.fig.add_subplot(211)
+        self.axes2=self.fig.add_subplot(212)
+        self.axes_list=[self.axes1,self.axes2]
+        
+        self.subplotlist.append([self.axes1,self.current_list[0],self.control_button_list[0]])
+        self.subplotlist.append([self.axes2,self.current_list[1],self.control_button_list[1]])
+        
     def draw(self):
-        for subplot in self.subplotlist:
-            if subplot[1] != None:
-                subplot[0].cla()
-                #if subplot[1]==self.parent.temp_list:
-                if False:
-                    subplot[0].plot(self.parent.time_list,subplot[1],self.parent.time_list,self.parent.bridge_setpoint_list)
-                    # Plots temperature and bridge_setpoint together.
-                else:
-                    subplot[0].plot(self.parent.time_list,subplot[1])
-                    # Plots the current list along with just time.
+        for i in range(len(self.axes_list)):
+            x=self.parent.time_list
+            y=self.current_list[i]
+            if y==None:
+                break
+            if self.line_list[i]:
+                self.line_list[i].set_xdata(x)
+                self.line_list[i].set_ydata(y)
+            else:
+                self.line_list[i],=self.axes_list[i].plot(x,y)
+            self.axes_list[i].relim()
+            self.axes_list[i].autoscale_view()
         self.canvas.draw()
-            
+        
     def plot_toggle1(self):
         # Plots different lists depending on what the control button orders.
         # This can be made more complex (like plotting T versus I)
-        if self.control_buttons[0].currentText()=="Pause":
-            self.subplotlist[0][1]=None
-        elif self.control_buttons[0].currentText()=="Bridge Temperature":
-            self.subplotlist[0][1]=self.parent.temp_list
-        elif self.control_buttons[0].currentText()=="Magnet Current":
-            self.subplotlist[0][1]=self.parent.magnet_current_list
-            
+        if self.control_button_list[0].currentText()=="Pause":
+            self.current_list[0]=None
+        elif self.control_button_list[0].currentText()=="Bridge Temperature":
+            self.current_list[0]=self.parent.temp_list
+        elif self.control_button_list[0].currentText()=="Magnet Current":
+            self.current_list[0]=self.parent.magnet_current_list
     def plot_toggle2(self):
-        # Two plot_toggles are needed, since QOBject.connect can't take arguments. Otherwise, this could easily be one method.
-        if self.control_buttons[1].currentText()=="Pause":
-            self.subplotlist[1][1]=None
-        elif self.control_buttons[1].currentText()=="Bridge Temperature":
-            self.subplotlist[1][1]=self.parent.temp_list
-        elif self.control_buttons[1].currentText()=="Magnet Current":
-            self.subplotlist[1][1]=self.parent.magnet_current_list
+        # Plots different lists depending on what the control button orders.
+        # This can be made more complex (like plotting T versus I)
+        if self.control_button_list[1].currentText()=="Pause":
+            self.current_list[1]=None
+        elif self.control_button_list[1].currentText()=="Bridge Temperature":
+            self.current_list[1]=self.parent.temp_list
+        elif self.control_button_list[1].currentText()=="Magnet Current":
+            self.current_list[1]=self.parent.magnet_current_list
