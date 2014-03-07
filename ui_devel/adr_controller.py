@@ -188,20 +188,14 @@ class AdrController():
         
     def regenerate_loop(self):
     
-        self.request_user_input(message='Switch to Mag Cycle.')
-        self.request_user_input(message='Close heat switch.')
-        
-        print '3'
-        '''self.magup()
+        self.magup()
         self.wait()
         self.demag()
         self.wait()
-        self.request_regulate(bridge_setpoint_value)'''
+        self.request_regulate(bridge_setpoint_value)
                 
     def magup(self):
-        print '4'
         self.request_user_input(message='Switch to Mag Cycle.')
-        print '5'
         self.request_user_input(message='Close heat switch.')
         self.ramp_to(-0.005,0.1)
         
@@ -259,6 +253,37 @@ class AdrController():
             self.give_flag()
             raise
             
+    def request_manual_output_on(self):
+        # Private method.
+        
+        self.data=self.client.fetch_dict()
+        # Gets fresh data
+        output_now=self.data['pid_output_mon']
+        # Checks current output.
+        msg='MOUT %f'%(output_now)
+        self.client.send(3,msg)
+        # Sets manual output to that output.
+        
+        # Grab new value and compare them to make sure the command went through.
+        difference=1
+        start=time.time()
+        while difference>0.01:
+            result=float(self.client.query_port(3,'MOUT?'))
+            print result
+            print output_now
+            difference=abs(result-output_now)
+            tic=time.time()
+            if tic-start>2.0:
+                print 'Reponse for request_manual_output timed out.'
+                return
+        
+        if self.data['pid_manual_status']==1:
+            # If the mode is in PID control...
+            self.client.send(3,'AMAN 0')
+            # Turns manual output on.
+        else:
+            print 'Output mode already manual.'
+            
 ### Regulate Methods ###
 
     def request_pid_output_on(self):
@@ -315,34 +340,3 @@ class AdrController():
     def request_standby(self):
         self.state='standby'
         self.client.set_state('standby')
-        
-    def request_manual_output_on(self):
-        # Private method.
-        
-        self.data=self.client.fetch_dict()
-        # Gets fresh data
-        output_now=self.data['pid_output_mon']
-        # Checks current output.
-        msg='MOUT %f'%(output_now)
-        self.client.send(3,msg)
-        # Sets manual output to that output.
-        
-        # Grab new value and compare them to make sure the command went through.
-        difference=1
-        start=time.time()
-        while difference>0.01:
-            result=float(self.client.query_port(3,'MOUT?'))
-            print result
-            print output_now
-            difference=abs(result-output_now)
-            tic=time.time()
-            if tic-start>2.0:
-                print 'Reponse for request_manual_output timed out.'
-                return
-        
-        if self.data['pid_manual_status']==1:
-            # If the mode is in PID control...
-            self.client.send(3,'AMAN 0')
-            # Turns manual output on.
-        else:
-            print 'Output mode already manual.'

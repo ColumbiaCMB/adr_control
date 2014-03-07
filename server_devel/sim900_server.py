@@ -1,6 +1,6 @@
 import Pyro4
 import time
-import experimental_sim900_communicator
+import sim900_communicator
 import threading
 import numpy as np
 
@@ -82,13 +82,11 @@ class sim900Server():
         self.data={}
         self.state='standby'
         
-        self.communicator_lock=threading.Lock()
-        # Make sure communicator methods don't collide.
         self.server_lock=threading.Lock()
         # Make sure server methods don't collide. In particular, I don't want to try sending a command while the follow_command_dict
         # is talking to a specific port.
         
-        self.communicator=experimental_sim900_communicator.CleanComm(self.communicator_lock)
+        self.communicator=sim900_communicator.CleanComm()
         # Start up to connect to real sim900
         
         #self.communicator=sim900_communicator.CleanComm(self.communicator_lock,host='localhost',port=13579)
