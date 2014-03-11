@@ -93,9 +93,13 @@ class AdrController():
                     
                             
                             self.recent_current_values.append(self.data['dvm_volts1'])
-                            if len(self.recent_current_values)>10:
+                            if len(self.recent_current_values)>20:
                                 del self.recent_current_values[0]
-                            if len(self.recent_current_values)>10 and sum(self.recent_current_values)/len(self.recent_current_values)<0.03:
+                            mean=sum(self.recent_current_values)/len(self.recent_current_values)
+                            print len(self.recent_current_values)
+                            print mean
+                            print len(self.recent_current_values)>=20 and mean<0.03
+                            if len(self.recent_current_values)>=20 and mean<0.03:
                                 # This list makes sure the system doesn't ramp down due to a single point below 0.03 amps.
                                 # It must be there for ten successive data measurements.
                                 print 'Current too low to regulate. Ramping to zero current.'
@@ -104,14 +108,14 @@ class AdrController():
                         
                             difference=self.pid_goal - self.data['pid_setpoint']
                             # Change these to percentages?
-                            if difference >=0.01:
+                            if difference >0:
                                 #ramp setpoint upp_bridge = data['bridge_temp_value']
                                 self.client.set_pid_setpoint(self.data['pid_setpoint']+(self.pid_step*self.refresh_rate))
-                            if difference < -0.01:
+                            if difference < 0:
                                 #ramp setpoint down.
                                 self.client.set_pid_setpoint(self.data['pid_setpoint']-(self.pid_step*self.refresh_rate))
                                 
-                            if abs(difference)<=0.01*self.pid_goal and difference!=0:
+                            if abs(difference)<=0.03*self.pid_goal and difference!=0:
                                 # Once we are close enough, we simply set the setpoint to our goal.
                                 self.client.set_pid_setpoint(self.pid_goal)
                                 
@@ -137,7 +141,7 @@ class AdrController():
                     if self.state=='ramping_down':
                         if self.data['dvm_volts1']<=0:
                             self.state='standby'
-                            print 'Ramp down complete. State switched to standby.'
+                            raise ValueError('Ramp goal reached. State switched to standby.')
                         self.client.set_manual_output(self.data['pid_manual_out']+self.ramp_step)
                         
                     if self.state=="dwell":
@@ -424,10 +428,15 @@ class AdrController():
         if not self.active_flag:
             print 'Controller does not have active_flag.'
             return
-        self.request_pid_output_on()
-        self.pid_goal=pid_setpoint_goal
-        self.state='start_regulate'
-        self.client.set_state('regulate')
+            
+        try:
+            self.request_pid_output_on()
+            self.pid_goal=pid_setpoint_goal
+            self.state='start_regulate'
+            self.client.set_state('regulate')
+        except:
+            self.give_flag()
+            raise
 
 ### Standby ###
         
@@ -438,13 +447,22 @@ class AdrController():
             print 'Controller does not have active_flag.'
             return
     
-        if self.command_thread:
-            self.quit_command_thread=True
-            
+        try:
     
-        if self.data['dvm_volts1']>=0:
-            # Ramps to zero if not already there.
-            self.ramp_down()
-        else:
-            self.state='standby'
+            if self.command_thread:
+                self.quit_command_thread=True
+                
+            self.recent_current_values=[]
+            # Resets the monitor list.
+        
+            if self.data['dvm_volts1']>=0:
+                # Ramps to zero if not already there.
+                self.ramp_down()
+            else:
+                self.request_manual_output_on()
+                self.state='standby'
+        except:
+            self.give_flag()
+            raise
             self.client.set_state('standby')
+            self.give_flag()
