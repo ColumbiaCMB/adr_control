@@ -82,11 +82,13 @@ class sim900Server():
         self.data={}
         self.state='standby'
         
+        self.communicator_lock=threading.Lock()
+        
         self.server_lock=threading.Lock()
         # Make sure server methods don't collide. In particular, I don't want to try sending a command while the follow_command_dict
         # is talking to a specific port.
         
-        self.communicator=sim900_communicator.CleanComm()
+        self.communicator=sim900_communicator.CleanComm(self.communicator_lock)
         # Start up to connect to real sim900
         
         #self.communicator=sim900_communicator.CleanComm(self.communicator_lock,host='localhost',port=13579)
@@ -113,9 +115,11 @@ class sim900Server():
         self.loop_thread.daemon=True
         self.loop_thread.start()
             
+# Functional loop (following the command dictionary to populate data)
+            
     def follow_command_dict(self):
     
-        self.communicator.send('xyx')
+        self.go_to_mainframe()
         # Makes sure we always start at the top level of the sim900.
         
         while True:
@@ -128,12 +132,12 @@ class sim900Server():
             
                 #start_port_time=time.time()
                 port=i
-                connect_msg='CONN %d, "xyx"'%(port)
+                connect_msg='CONN %d, "xxx"'%(port)
                 
                 self.server_lock.acquire()
                 
                 try:
-                    # Makes sure communicator will send the 'xyx' to go back to sim900.
+                    # Makes sure communicator will send the 'xxx' to go back to sim900.
                     # It doesn't work. After shutting down unexpectedly, it gets stuck in another sim module.
                     self.communicator.send(connect_msg)
                     
@@ -171,12 +175,16 @@ class sim900Server():
                         #toc=time.time()
                         #print '%s took %f seconds' % (msg,(toc-tic))
                 except Exception as e:
-                    raise e
+                
+                    print 'ERROR ENCOUNTERED. Loop ended, lock released, and system will try to go back to mainframe.'
+                    print e
+                    
                 finally:
                     #end_port_time=time.time()
                     #print 'Port %d done, it took %f seconds'%(port,(end_port_time-start_port_time))
                     self.server_lock.release()
-                    self.communicator.send('xyx')
+                    self.go_to_mainframe()
+                    
             self.data['time']=time.time()
             
             print "Total data loading took %f seconds" %(self.data['time']-start)
@@ -189,6 +197,8 @@ class sim900Server():
                     self.send(1,'AGAI ON')
                 else:
                     print 'Correction in progress'
+                    
+# Simple getting functions
         
     def fetch_dict(self):
         return self.data
@@ -199,6 +209,8 @@ class sim900Server():
     def set_state(self,state):
         self.state=state
         
+### Flag handling
+    # These methods are used to coordinate with the controller.
     def get_flag(self):
     # Used by controller to get action flag.
         if self.flag_available:
@@ -211,47 +223,74 @@ class sim900Server():
     # Used by controller to give back action flag.
         self.flag_available=True
         
-    # These methods are used to coordinate with the controller.
+### Stub sending functions
+
+    def set_pid_setpoint(self, setpoint):
+        msg='SETP %f'%(setpoint)
+        return self.send(3,msg)
         
-    def easy_test(self):
-        # Just a test that is very easy to observe (all PID lights go on and off)
+    def query_pid_setpoint(self):
+        result=self.query_port(3,'SETP?')
+        if result==False:
+            return False
+        else:
+            return float(result)
         
+    def set_manual_output(self,manual_out):
+        msg='MOUT %f'%(manual_out)
+        return self.send(3,msg)
+        
+    def query_manual_output(self):
+        result=self.query_port(3,'MOUT?')
+        if result==False:
+            return False
+        else:
+            return float(result)
+    
+    def set_pid_manual_status(self,manual_status):
+        msg='AMAN %d'%(manual_status)
+        return self.send(3,msg)
+        
+### Manual sending functions    
+        
+    def go_to_mainframe(self):
         self.server_lock.acquire()
         try:
-            self.communicator.send('xyx')
-            # Makes sure we always start at the top level of the sim900.
-            print 'regenerate'
-            if self.state==0:
-                self.communicator.send('SNDT 3, "PCTL 1"')
-                self.communicator.send('SNDT 3, "ICTL 1"')
-                self.communicator.send('SNDT 3, "DCTL 1"')
-                self.state=1
-            else:
-                self.communicator.send('SNDT 3, "PCTL 0"')
-                self.communicator.send('SNDT 3, "ICTL 0"')
-                self.communicator.send('SNDT 3, "DCTL 0"')
-                self.state=0
-        except:
-            raise
+            self.communicator.send('xxx')
+            return True
+        except Exception as e:
+            print 'Error encountered when sending CONN terminator ("xxx").'
+            print e
+            return False
+            
+            # Need more error checking?
+            
         finally:
             self.server_lock.release()
         
     def send_direct(self,port,msg):
         # Sends directly. Use only once the lock is acquired.
-        self.communicator.send('xyx')
         new_msg='SNDT %d, "%s"'%(port,msg)
         self.communicator.send(new_msg)
         
         
     def send(self,port,msg):
         # Wraps send_direct in locks, makes sure locks are released.
+        
+        self.go_to_mainframe()
+        
         self.server_lock.acquire()
         try:
             self.send_direct(port,msg)
-        except:
-            raise
+            return True
+        except Exception as e:
+            print 'Error encountered when sending message %s to port %d'%(msg,port)
+            print e
+            return False
         finally:
             self.server_lock.release()
+        
+        
         
     def query_port(self,port,msg):
         # Wraps query_port_direct in locks, makes sure locks are released.
@@ -259,19 +298,24 @@ class sim900Server():
         # Originally, this was used to populate the dictionary rather than the CONN method.
         # However it was slower (by a factor of 2).
         # It is simpler and faster for individual queries, however.
+        
+        self.go_to_mainframe()
+        
         self.server_lock.acquire()
         try:
             result=self.query_port_direct(port,msg)
             return result
-        except:
-            raise
+        except Exception as e:
+            print 'Error encountered when sending message %s to port %d'%(msg,port)
+            print e
+            return False
         finally:
             self.server_lock.release()
             
     def query_port_direct(self,port,msg):
         # Query port directly. Use only once lock is acquired.
-        self.communicator.send('xyx')
         result=self.communicator.query_port(port,msg)
+        
         if port in self.command_dictionary:
             for each in self.command_dictionary[port]:
                 if each['command']==msg:
