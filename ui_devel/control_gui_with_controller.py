@@ -36,7 +36,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.setupTimer()
         self.setupTimer2()
         
-        self.plot=Superplot(self,[self.plotoptions,self.plotoptions2])
+        self.plot=Superplot(self)
         self.plotLayout.insertWidget(0,self.plot.canvas)
         self.toolbar=NavigationToolbar(self.plot.canvas,self)
         self.navbar_layout.insertWidget(0,self.toolbar)
@@ -53,14 +53,14 @@ class PlotDialog(QDialog,gui.Ui_Form):
     
         
     def setupSlots(self):
-        QObject.connect(self.bridge_setpoint_command_value,SIGNAL("editingFinished()"),self.set_bridge_setpoint)
+        #QObject.connect(self.bridge_setpoint_command_value,SIGNAL("editingFinished()"),self.set_bridge_setpoint)
         
         QObject.connect(self.regenerate_button,SIGNAL("clicked()"), self.request_regenerate)
         QObject.connect(self.regulate_button,SIGNAL("clicked()"), self.request_regulate)
         QObject.connect(self.stop_button,SIGNAL("clicked()"), self.controller.request_standby)
         
-        QObject.connect(self.plotoptions,SIGNAL("activated(const QString&)"),self.plot.plot_toggle1)
-        QObject.connect(self.plotoptions2,SIGNAL("activated(const QString&)"),self.plot.plot_toggle2)
+        QObject.connect(self.plotoptions,SIGNAL("activated(const QString&)"),self.plot_toggle1)
+        QObject.connect(self.plotoptions2,SIGNAL("activated(const QString&)"),self.plot_toggle2)
         
     def setupLists(self):
         #Create lists in which bridge-temperature and bridge-setpoint values will be stored
@@ -77,8 +77,10 @@ class PlotDialog(QDialog,gui.Ui_Form):
         #self.bridge_setpoint_value.setText(str(bridge_setpoint))
         temp_bridge = data['bridge_temp_value']
         self.temp_bridge_value.setText(str(temp_bridge))
-        temp_3K = data['therm_temperature2']
-        self.temp_3k_value.setText(str(temp_3K))
+        temp_floating_diode_value = data['therm_temperature2']
+        self.temp_floating_diode_value.setText(str(temp_floating_diode_value))
+        temp_magnet_diode_value = data['therm_temperature1']
+        self.temp_magnet_diode_value.setText(str(temp_magnet_diode_value))
         temp_50K = data['therm_temperature0']
         self.temp_50k_value.setText(str(temp_50K))
         current = data['dvm_volts1']
@@ -93,44 +95,63 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.pid_mode_value.setText('PID')
         if data['pid_manual_status'] == 0:
             self.pid_mode_value.setText('MAN')
+            
+        self.state_value.setText(self.controller.state)
+        self.flag_value.setText(str(self.controller.active_flag))
         
         #Update Temperature and Setpoint Lists
-        if len(self.temp_list) < 50:
+        if len(self.temp_list) < 500:
             self.temp_list.append(temp_bridge)
-        elif len(self.temp_list) >= 50:
+        elif len(self.temp_list) >= 500:
             del self.temp_list[0]
             self.temp_list.append(temp_bridge)
 
-        if len(self.bridge_setpoint_list) < 50:
+        if len(self.bridge_setpoint_list) < 500:
             self.bridge_setpoint_list.append(bridge_setpoint)
-        elif len(self.bridge_setpoint_list) >= 50:
+        elif len(self.bridge_setpoint_list) >= 500:
             del self.bridge_setpoint_list[0]
             self.bridge_setpoint_list.append(bridge_setpoint)
             
-        if len(self.magnet_current_list) < 50:
+        if len(self.magnet_current_list) < 500:
             self.magnet_current_list.append(current)
-        elif len(self.magnet_current_list) >= 50:
+        elif len(self.magnet_current_list) >= 500:
             del self.magnet_current_list[0]
             self.magnet_current_list.append(current)
             
-        if len(self.time_list) < 50:
+        if len(self.time_list) < 500:
             self.time_list.append(data["time"])
-        elif len(self.time_list) >= 50:
+        elif len(self.time_list) >= 500:
             del self.time_list[0]
             self.time_list.append(data["time"])
             
         #Update plots by calling the draw function.
+        
+        if self.autoscale_x.isChecked():
+            self.plot.autoscale_x=True
+        else:
+            self.plot.autoscale_x=False
+        if self.autoscale_y.isChecked():
+            self.plot.autoscale_y=True
+        else:
+            self.plot.autoscale_y=False
         self.plot.draw()
         
+    def plot_toggle1(self, command):
+        # Calls the plot_toggle method of the superplot with the correct command and index.
+        self.plot.plot_toggle(command,0)
+    def plot_toggle2(self, command):
+        self.plot.plot_toggle(command,1)
+        
     def request_regenerate(self):
-        self.controller.request_regenerate(3.0)
+        setpoint=self.setpoint_value.value()
+        current=self.peak_current_value.value()
+        rru=self.ramp_rate_up_value.value()
+        rrd=self.ramp_rate_down_value.value()
+        self.controller.request_regenerate(pid_setpoint_goal=setpoint,peak_current=current, ramp_rate_up=rru, ramp_rate_down=rrd)
         
     def request_regulate(self):
-        self.controller.request_regulate(3.0)
-        
-    def set_bridge_setpoint(self):
-        #self.controller.request_set_bridge_setpoint(self.bridge_setpoint_command_value.value())
-        pass
+        setpoint=self.setpoint_value.value()
+        self.controller.request_regulate(setpoint)
         
     def raise_message_box(self,msg):
         msg_box=QMessageBox()
@@ -148,7 +169,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.controller.gui_response=True
         
     def check_for_message(self):
-        print 'check for controller message'
+        #print 'check for controller message'
         if self.controller.message_for_gui!=None:
             'controller message found'
             self.raise_message_box(self.controller.message_for_gui)

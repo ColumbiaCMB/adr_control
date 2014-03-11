@@ -7,8 +7,7 @@ from PyQt4.QtGui import *
 
 class Superplot():
     # Defines a plot, contains the methods used to control and build one.
-    def __init__(self,parent,control_buttons):
-        # parent and control_button needed as arguments when initialized since connecting QObjects doesn't allow the passing of arguments.
+    def __init__(self,parent):
         self.dpi = 72
         #self.fig = Figure((9.1, 5.2), dpi=self.dpi)
         self.fig = Figure((12.0, 12.0), dpi=self.dpi)
@@ -17,10 +16,8 @@ class Superplot():
         self.parent=parent
         self.canvas.setParent(self.parent)
         
-        
-        self.subplotlist=[]
-        
-        self.control_button_list=control_buttons
+        self.autoscale_x=True
+        self.autoscale_y=False
         
         self.current_list=[None,None]
         
@@ -31,9 +28,6 @@ class Superplot():
         self.axes1=self.fig.add_subplot(211)
         self.axes2=self.fig.add_subplot(212)
         self.axes_list=[self.axes1,self.axes2]
-        
-        self.subplotlist.append([self.axes1,self.current_list[0],self.control_button_list[0]])
-        self.subplotlist.append([self.axes2,self.current_list[1],self.control_button_list[1]])
         
     def draw(self):
         for i in range(len(self.axes_list)):
@@ -47,8 +41,24 @@ class Superplot():
             else:
                 self.line_list[i],=self.axes_list[i].plot(x,y)
             self.axes_list[i].relim()
-            self.axes_list[i].autoscale_view()
+            self.axes_list[i].autoscale_view(scalex=self.autoscale_x,scaley=self.autoscale_y)
+            self.axes_list[i].grid(True)
         self.canvas.draw()
+        
+    def autoscale(self):
+        for axes in self.axes_list:
+            axes.autoscale_view(scalex=True,scaley=True)
+        self.canvas.draw()
+        
+    def plot_toggle(self,command,index):
+        # Plots different lists depending on what the control button orders.
+        # This can be made more complex (like plotting T versus I)
+        if command=="Pause":
+            self.current_list[index]=None
+        elif command=="Bridge Temperature":
+            self.current_list[index]=self.parent.temp_list
+        elif command=="Magnet Current":
+            self.current_list[index]=self.parent.magnet_current_list
         
     def plot_toggle1(self):
         # Plots different lists depending on what the control button orders.
