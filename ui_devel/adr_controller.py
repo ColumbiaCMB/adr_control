@@ -64,12 +64,10 @@ class AdrController():
                     if not fixing_flag and self.data['bridge_temp_value']>6:
                         # Temperature check.
                         print 'Temperature too high, ramping current to zero.'
-                        self.ramp_goal=0.0
-                        self.ramp_step=0.01
-                        # If temperature is above 6K and we are below zero current... something is very odd.
-                        self.state='ramping'
+                        self.ramp_down()
                     
                     if self.state=='start_regulate':
+                        # Ramps to a minimum regulate current.
                         if self.data['dvm_volts1']>0.04:
                             self.state='regulate'
                         else:
@@ -96,20 +94,15 @@ class AdrController():
                             if len(self.recent_current_values)>20:
                                 del self.recent_current_values[0]
                             mean=sum(self.recent_current_values)/len(self.recent_current_values)
-                            print len(self.recent_current_values)
-                            print mean
-                            print len(self.recent_current_values)>=20 and mean<0.03
+                            # Checks if the average of the last 20 values is less than 0.03 A. If so, the current is too low to regulate.
                             if len(self.recent_current_values)>=20 and mean<0.03:
-                                # This list makes sure the system doesn't ramp down due to a single point below 0.03 amps.
-                                # It must be there for ten successive data measurements.
                                 print 'Current too low to regulate. Ramping to zero current.'
                                 self.ramp_down()
                                 
                         
+                            print 'Pid_setpoint from data is %f'%(self.data['pid_setpoint'])
                             difference=self.pid_goal - self.data['pid_setpoint']
-                            # Change these to percentages?
                             if difference >0:
-                                #ramp setpoint upp_bridge = data['bridge_temp_value']
                                 self.client.set_pid_setpoint(self.data['pid_setpoint']+(self.pid_step*self.refresh_rate))
                             if difference < 0:
                                 #ramp setpoint down.
@@ -127,9 +120,13 @@ class AdrController():
                             
                         
                     if self.state=='ramping_up':
+                    
+                        if self.data['pid_manual_status']==1:
+                            # check that manual output on
+                            self.request_manual_output_on()
+                    
                         # Makes sure the current stays within acceptable bounds. 
                         if self.data['dvm_volts1']>=9.7:
-                            # Allows you to go down, but not up
                             self.state='dwell'
                             raise ValueError('Magnet current is at max. State has been set to dwell.')
                         if self.data['dvm_volts1']>=self.ramp_goal:
@@ -139,14 +136,25 @@ class AdrController():
                         
                         
                     if self.state=='ramping_down':
+                    
+                        if self.data['pid_manual_status']==1:
+                            # check that manual output on
+                            self.request_manual_output_on()
+                    
                         if self.data['dvm_volts1']<=0:
                             self.state='standby'
                             raise ValueError('Ramp goal reached. State switched to standby.')
                         self.client.set_manual_output(self.data['pid_manual_out']+self.ramp_step)
                         
                     if self.state=="dwell":
+                        if self.data['pid_manual_status']==1:
+                            # check that manual output on
+                            self.request_manual_output_on()
                         pass
                     if self.state=="standby":
+                        if self.data['pid_manual_status']==1:
+                            # check that manual output on
+                            self.request_manual_output_on()
                         pass
                         
                     
@@ -163,9 +171,7 @@ class AdrController():
 ### Flag Handling ###
         
     def grab_flag(self):
-        if self.active_flag==True:
-            print 'You already have the flag.'
-        else:
+        if self.active_flag==False:
             flag=self.client.get_flag()
             self.active_flag=flag
         
@@ -289,11 +295,6 @@ class AdrController():
         # The flag will be given back once the ramping is complete.
         
         try:
-        
-            if self.data['pid_manual_status']==1:
-                # check that manual output on
-                self.request_manual_output_on()
-            
             self.state='ramping_up'
             self.client.set_state('ramping_up')
             self.ramp_step=rate*self.refresh_rate
@@ -316,11 +317,6 @@ class AdrController():
             return
         
         try:
-        
-            if self.data['pid_manual_status']==1:
-                # check that manual output on
-                self.request_manual_output_on()
-            
             self.state='ramping_down'
             self.client.set_state('ramping_down')
             self.ramp_step=rate*self.refresh_rate
@@ -353,8 +349,8 @@ class AdrController():
                 return False
             # Result will not be a float if query_manual_output failed. It will be false.
                 
-            print result
-            print output_now
+            print 'Manual output is now %f'%(result)
+            print 'Output_mon is now %f'%(output_now)
             difference=abs(result-output_now)
             tic=time.time()
             if tic-start>2.0:
@@ -370,7 +366,9 @@ class AdrController():
             
         else:
             print 'Output mode already manual.'
-            
+           
+        self.data=self.client.fetch_dict()
+        # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries) 
         return True
             
 ### Regulate Methods ###
@@ -382,7 +380,8 @@ class AdrController():
         self.data=self.client.fetch_dict()
         # Gets fresh data
         output_now=self.data['pid_measure_mon']
-        success=self.client.set_pid_setpoint(output_now)
+        success=self.client.set_pid_setpoint(output_nowself.data=self.client.fetch_dict()
+        # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries))
         # matches input voltage at front panel, not data from bridge, since there can be a voltage offset.
         # Note that there is a small ~0.05 offset between pid setpoint and bridge_temperature.
         if success==False:
@@ -403,8 +402,9 @@ class AdrController():
                 return False
             # Result will not be a float if query_pid_setpoint failed. It will be false.
             
-            print result
-            print output_now
+            print 'Pid_setpoint is now %f'%(result)
+            print 'pid_measure_mon is now %f'%(output_now)
+            
             difference=abs(result-output_now)
             tic=time.time()
             if tic-start>2.0:
@@ -421,6 +421,9 @@ class AdrController():
         else:
             print 'Output mode already PID.'
             
+            
+        self.data=self.client.fetch_dict()
+        # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries)
         return True
             
     def request_regulate(self,pid_setpoint_goal):
@@ -430,7 +433,6 @@ class AdrController():
             return
             
         try:
-            self.request_pid_output_on()
             self.pid_goal=pid_setpoint_goal
             self.state='start_regulate'
             self.client.set_state('regulate')

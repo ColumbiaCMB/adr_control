@@ -234,7 +234,11 @@ class sim900Server():
         if result==False:
             return False
         else:
-            return float(result)
+            try:
+                return float(result)
+            except ValueError as e:
+                print e
+                return False
         
     def set_manual_output(self,manual_out):
         msg='MOUT %f'%(manual_out)
@@ -245,7 +249,11 @@ class sim900Server():
         if result==False:
             return False
         else:
-            return float(result)
+            try:
+                return float(result)
+            except ValueError as e:
+                print e
+                return False
     
     def set_pid_manual_status(self,manual_status):
         msg='AMAN %d'%(manual_status)
@@ -319,8 +327,11 @@ class sim900Server():
         if port in self.command_dictionary:
             for each in self.command_dictionary[port]:
                 if each['command']==msg:
-                    self.data[each['name']]=float(result)
-                    print 'out of date value updated'
+                    try:
+                        self.data[each['name']]=float(result)
+                        print 'out of date value updated, %s is now %f'%(each['name'],float(result))
+                    except ValueError as e:
+                        print e
         return result
         # If the result belongs in self.data, the value is updated. Query_port is often used for verification after setting
         # pid_manual_out or pid_setpoint to a new value. It takes ~2.5 seconds for the server to 'catch up' to this reset on its own,

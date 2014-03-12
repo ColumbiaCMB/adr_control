@@ -169,7 +169,6 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.controller.gui_response=True
         
     def check_for_message(self):
-        #print 'check for controller message'
         if self.controller.message_for_gui!=None:
             'controller message found'
             self.raise_message_box(self.controller.message_for_gui)

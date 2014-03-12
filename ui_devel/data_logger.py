@@ -35,7 +35,6 @@ class DataFile():
                     self.nc.variables[key][length]=np.nan
             else:
                 self.nc.createVariable(key,np.float32,dimensions=('time',))
-                print 'Variable %s created'%(key)
                 # Create the variable
                 try:
                     # Error handling in case values in the dictionary can't be converted to the correct type.
