@@ -5,7 +5,7 @@ import Pyro4
 
 
 class AdrController():
-    def __init__(self,client,gui_input=False,startup_state="standby"):
+    def __init__(self,client,gui_input=False,gui_message_display=None,startup_state="standby"):
         self.exit=False
         self.state=startup_state
         # Sets the current state. Standby by default.
@@ -27,6 +27,7 @@ class AdrController():
         self.gui_input=gui_input
         self.gui_response=False
         self.message_for_gui=None
+        self.gui_message_display=gui_message_display
         
         self.client=client
         
@@ -42,7 +43,7 @@ class AdrController():
     # starts the loop_thread (function loop)
         if self.loop_thread:
             if self.loop_thread.is_alive():
-                print "loop already running"
+                self.show("loop already running")
                 return
         self.loop_thread=threading.Thread(target=self.function_loop)
         self.loop_thread.daemon=True
@@ -60,10 +61,16 @@ class AdrController():
                 
                     fixing_flag = (self.data['bridge_overload_status']>0) or (self.data['bridge_autorange_gain']>0)
                     # tells whether the bridge is using AGAI to fix and overload or not.
+                    # Probably should just use a flag from the server.
+                    
+                    if fixing_flag:
+                        # Shows us what the overload status is.
+                        self.show('Bridge overload status is %f'%(self.data['bridge_overload_status']))
+                        self.show('Bridge autorange gain is %d'%(self.data['bridge_autorange_gain']))
                     
                     if not fixing_flag and self.data['bridge_temp_value']>6:
                         # Temperature check.
-                        print 'Temperature too high, ramping current to zero.'
+                        self.show('Temperature too high, ramping current to zero.')
                         self.ramp_down()
                     
                     if self.state=='start_regulate':
@@ -85,7 +92,7 @@ class AdrController():
                             if self.data['pid_manual_status']==0:
                                 # Switches from the manual output to PID.
                                 # This could happen from an overload or from start_regulate's ramping to a minimum current.
-                                print 'Switching to PID output.'
+                                self.show('Switching to PID output.')
                                 self.request_pid_output_on()
                     
                     
@@ -96,11 +103,11 @@ class AdrController():
                             mean=sum(self.recent_current_values)/len(self.recent_current_values)
                             # Checks if the average of the last 20 values is less than 0.03 A. If so, the current is too low to regulate.
                             if len(self.recent_current_values)>=20 and mean<0.03:
-                                print 'Current too low to regulate. Ramping to zero current.'
+                                self.show('Current too low to regulate. Ramping to zero current.')
+                                self.recent_current_values=[]
                                 self.ramp_down()
                                 
-                        
-                            print 'Pid_setpoint from data is %f'%(self.data['pid_setpoint'])
+                                
                             difference=self.pid_goal - self.data['pid_setpoint']
                             if difference >0:
                                 self.client.set_pid_setpoint(self.data['pid_setpoint']+(self.pid_step*self.refresh_rate))
@@ -114,7 +121,7 @@ class AdrController():
                                 
                         if fixing_flag:
                             if self.data['pid_manual_status']==1:
-                                print 'Switching to manual output until autorange gain finished.'
+                                self.show('Switching to manual output until autorange gain finished.')
                                 self.request_manual_output_on()
                                 # Holds the output constant until the overload is fixed.
                             
@@ -160,7 +167,7 @@ class AdrController():
                     
                 except ValueError as e:
                     # Deals with the system reaching certain values.
-                    print e
+                    self.show(str(e))
                     self.give_flag()
                 except:
                     self.give_flag()
@@ -203,12 +210,12 @@ class AdrController():
     def request_regenerate(self,pid_setpoint_goal=2.5, peak_current=1.0, ramp_rate_up=-0.05, ramp_rate_down=0.05, wait_time=0.5):
     
         if self.state!='standby':
-            print 'To regenerate, the controller must be in standby mode.'
+            self.show('To regenerate, the controller must be in standby mode.')
             return
     
         self.grab_flag()
         if not self.active_flag:
-            print 'Controller does not have active_flag.'
+            self.show('Controller does not have active_flag.')
             return
         
         try:
@@ -221,7 +228,7 @@ class AdrController():
     def start_command_thread(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down,wait_time):
         if self.command_thread:
             if self.command_thread.is_alive():
-                print "loop already running"
+                self.show("loop already running")
                 return
                 
         self.command_thread=threading.Thread(target=self.regenerate_loop,args=(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down,wait_time))
@@ -232,23 +239,23 @@ class AdrController():
     
         self.magup(peak_current,ramp_rate_up)
         if self.quit_command_thread==True:
-            print 'Regenerate thread exited.'
+            self.show('Regenerate thread exited.')
             return
         self.wait('dwell')
         if self.quit_command_thread==True:
-            print 'Regenerate thread exited.'
+            self.show('Regenerate thread exited.')
             return
         self.dwell(wait_time)
         if self.quit_command_thread==True:
-            print 'Regenerate thread exited.'
+            self.show('Regenerate thread exited.')
             return
         self.demag(ramp_rate_down)
         if self.quit_command_thread==True:
-            print 'Regenerate thread exited.'
+            self.show('Regenerate thread exited.')
             return
         self.wait('standby')
         if self.quit_command_thread==True:
-            print 'Regenerate thread exited.'
+            self.show('Regenerate thread exited.')
             return
         self.request_regulate(pid_setpoint_goal)
         return
@@ -265,7 +272,7 @@ class AdrController():
         tic=time.time()
         while tic-start<wait_time_in_seconds:
             if self.quit_command_thread==True:
-                print 'Regenerate thread exited.'
+                self.show('Regenerate thread exited.')
                 return
             time.sleep(0.01)
             tic=time.time()
@@ -274,7 +281,7 @@ class AdrController():
         # Waits until the system has finished ramping up or down.
         while self.state != signal:
             if self.quit_command_thread==True:
-                print 'Regenerate thread exited.'
+                self.show('Regenerate thread exited.')
                 return
             time.sleep(0.01)
         
@@ -289,7 +296,7 @@ class AdrController():
         
         self.grab_flag()
         if not self.active_flag:
-            print 'Controller does not have active_flag.'
+            self.show('Controller does not have active_flag.')
             return
         # Tries to grab the active flag. If it doesn't get it, it ends.
         # The flag will be given back once the ramping is complete.
@@ -313,7 +320,7 @@ class AdrController():
         
         self.grab_flag()
         if not self.active_flag:
-            print 'Controller does not have active_flag.'
+            self.show('Controller does not have active_flag.')
             return
         
         try:
@@ -349,8 +356,8 @@ class AdrController():
                 return False
             # Result will not be a float if query_manual_output failed. It will be false.
                 
-            print 'Manual output is now %f'%(result)
-            print 'Output_mon is now %f'%(output_now)
+            self.show('Manual output is now %f'%(result))
+            self.show('Output_mon is now %f'%(output_now))
             difference=abs(result-output_now)
             tic=time.time()
             if tic-start>2.0:
@@ -365,7 +372,7 @@ class AdrController():
                 return False
             
         else:
-            print 'Output mode already manual.'
+            self.show('Output mode already manual.')
            
         self.data=self.client.fetch_dict()
         # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries) 
@@ -380,7 +387,7 @@ class AdrController():
         self.data=self.client.fetch_dict()
         # Gets fresh data
         output_now=self.data['pid_measure_mon']
-        success=self.client.set_pid_setpoint(output_nowself.data=self.client.fetch_dict()
+        success=self.client.set_pid_setpoint(output_now)
         # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries))
         # matches input voltage at front panel, not data from bridge, since there can be a voltage offset.
         # Note that there is a small ~0.05 offset between pid setpoint and bridge_temperature.
@@ -402,8 +409,8 @@ class AdrController():
                 return False
             # Result will not be a float if query_pid_setpoint failed. It will be false.
             
-            print 'Pid_setpoint is now %f'%(result)
-            print 'pid_measure_mon is now %f'%(output_now)
+            self.show('Pid_setpoint is now %f'%(result))
+            self.show('pid_measure_mon is now %f'%(output_now))
             
             difference=abs(result-output_now)
             tic=time.time()
@@ -419,7 +426,7 @@ class AdrController():
             if success==False:
                 return False
         else:
-            print 'Output mode already PID.'
+            self.show('Output mode already PID.')
             
             
         self.data=self.client.fetch_dict()
@@ -429,7 +436,7 @@ class AdrController():
     def request_regulate(self,pid_setpoint_goal):
         self.grab_flag()
         if not self.active_flag:
-            print 'Controller does not have active_flag.'
+            self.show('Controller does not have active_flag.')
             return
             
         try:
@@ -446,7 +453,7 @@ class AdrController():
     
         self.grab_flag()
         if not self.active_flag:
-            print 'Controller does not have active_flag.'
+            self.show('Controller does not have active_flag.')
             return
     
         try:
@@ -468,3 +475,13 @@ class AdrController():
             raise
             self.client.set_state('standby')
             self.give_flag()
+            
+### Display messages ###
+
+    def show(self,message):
+        #timestamp=time.strftime('%m-%d_%H-%M-%S ')
+        if self.gui_message_display==None:
+            print str(message)
+        else:
+            # Push to GUI handling function.
+            self.gui_message_display(str(message))

@@ -2,6 +2,7 @@ import gui
 from superplot import Superplot
 import adr_controller
 import data_logger
+import message_logger
 # Custom modules
 
 
@@ -15,10 +16,17 @@ import numpy as np
 import IPython
 import time
 import threading
+import logging
 
 import Pyro4
 
 import sys
+
+#QMetaType.Q_DECLARE_METATYPE(QTextCursor)
+#QMetaType.qRegisterMetaType(QTextCursor)
+# Get this for both of these: AttributeError: type object 'QMetaType' has no attribute 'qRegisterMetaType'
+# even though documentation shows these.
+
 
 class PlotDialog(QDialog,gui.Ui_Form):
     # Connects GUI pieces to functions. Grabs data from sim900 and updates gui.
@@ -26,9 +34,12 @@ class PlotDialog(QDialog,gui.Ui_Form):
         super(PlotDialog, self).__init__(parent)
         
         self.sim900=Pyro4.Proxy("PYRONAME:sim900server")
-        self.controller=adr_controller.AdrController(client=self.sim900,gui_input=True)
+        self.controller=adr_controller.AdrController(client=self.sim900,gui_input=True,gui_message_display=self.pass_to_logger)
         self.data_logger=data_logger.DataFile()
-        # Sets up sim900 pyro proxy and AdrController.
+        self.message_logger=message_logger.MessageFile(method=self.display)
+        # Sets up sim900 pyro proxy, AdrController, and data_logger - which records data in a netcdf format.
+        
+        
         
         self.__app = qApp
         self.setupUi(self)
@@ -43,6 +54,10 @@ class PlotDialog(QDialog,gui.Ui_Form):
         # Needed for starting the plots.
         
         self.setupSlots()
+        
+    def test(self,message):
+        print message
+    
            
     def setupTimer(self):
         #Create a QT Timer that will timeout every half-a-second
@@ -65,7 +80,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
     def setupLists(self):
         #Create lists in which bridge-temperature and bridge-setpoint values will be stored
         self.temp_list = []
-        self.bridge_setpoint_list = []
+        self.pid_setpoint_list = []
         self.magnet_current_list=[]
         self.time_list=[]
         
@@ -73,8 +88,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         data = self.sim900.fetch_dict()
         self.data_logger.update(data)
         
-        bridge_setpoint = data['bridge_temperature_setpoint']
-        #self.bridge_setpoint_value.setText(str(bridge_setpoint))
+        
         temp_bridge = data['bridge_temp_value']
         self.temp_bridge_value.setText(str(temp_bridge))
         temp_floating_diode_value = data['therm_temperature2']
@@ -88,8 +102,12 @@ class PlotDialog(QDialog,gui.Ui_Form):
         voltage = data['dvm_volts0']
         self.magnet_voltage_value.setText(str(voltage))
         
+        self.bridge_overload_status_value.setText(str(data['bridge_overload_status']))
+        self.bridge_autorange_gain_value.setText(str(data['bridge_autorange_gain']))
+        
         self.pid_output_value.setText(str(data['pid_output_mon']))
-        self.pid_setpoint_value.setText(str(data['pid_setpoint']))
+        pid_setpoint = data['pid_setpoint']
+        self.pid_setpoint_value.setText(str(pid_setpoint))
         self.pid_manual_output_value.setText(str(data['pid_manual_out']))
         if data['pid_manual_status'] == 1:
             self.pid_mode_value.setText('PID')
@@ -106,11 +124,11 @@ class PlotDialog(QDialog,gui.Ui_Form):
             del self.temp_list[0]
             self.temp_list.append(temp_bridge)
 
-        if len(self.bridge_setpoint_list) < 500:
-            self.bridge_setpoint_list.append(bridge_setpoint)
-        elif len(self.bridge_setpoint_list) >= 500:
-            del self.bridge_setpoint_list[0]
-            self.bridge_setpoint_list.append(bridge_setpoint)
+        if len(self.pid_setpoint_list) < 500:
+            self.pid_setpoint_list.append(pid_setpoint)
+        elif len(self.pid_setpoint_list) >= 500:
+            del self.pid_setpoint_list[0]
+            self.pid_setpoint_list.append(pid_setpoint)
             
         if len(self.magnet_current_list) < 500:
             self.magnet_current_list.append(current)
@@ -164,6 +182,12 @@ class PlotDialog(QDialog,gui.Ui_Form):
         #cancel_button=msg_box.addButton(QPushButton('Cancel'), QMessageBox.RejectRole)
         
         msg_box.exec_()
+        
+    def display(self,message):
+        self.message_value.append(message)
+        
+    def pass_to_logger(self, message):
+        self.message_logger.log(message)
         
     def respond_to_controller(self):
         self.controller.gui_response=True
