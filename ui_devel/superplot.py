@@ -19,7 +19,7 @@ class Superplot():
         self.autoscale_x=True
         self.autoscale_y=False
         
-        self.current_list=[None,None]
+        self.current_list=[self.parent.temp_list,self.parent.magnet_current_list]
         
         self.line1=None
         self.line2=None
@@ -34,7 +34,7 @@ class Superplot():
             x=self.parent.time_list
             y=self.current_list[i]
             if y==None:
-                break
+                continue
             if self.line_list[i]:
                 self.line_list[i].set_xdata(x)
                 self.line_list[i].set_ydata(y)
@@ -53,28 +53,11 @@ class Superplot():
     def plot_toggle(self,command,index):
         # Plots different lists depending on what the control button orders.
         # This can be made more complex (like plotting T versus I)
-        if command=="Pause":
+        if command=="Stop Plotting":
             self.current_list[index]=None
         elif command=="Bridge Temperature":
             self.current_list[index]=self.parent.temp_list
         elif command=="Magnet Current":
             self.current_list[index]=self.parent.magnet_current_list
-        
-    def plot_toggle1(self):
-        # Plots different lists depending on what the control button orders.
-        # This can be made more complex (like plotting T versus I)
-        if self.control_button_list[0].currentText()=="Pause":
-            self.current_list[0]=None
-        elif self.control_button_list[0].currentText()=="Bridge Temperature":
-            self.current_list[0]=self.parent.temp_list
-        elif self.control_button_list[0].currentText()=="Magnet Current":
-            self.current_list[0]=self.parent.magnet_current_list
-    def plot_toggle2(self):
-        # Plots different lists depending on what the control button orders.
-        # This can be made more complex (like plotting T versus I)
-        if self.control_button_list[1].currentText()=="Pause":
-            self.current_list[1]=None
-        elif self.control_button_list[1].currentText()=="Bridge Temperature":
-            self.current_list[1]=self.parent.temp_list
-        elif self.control_button_list[1].currentText()=="Magnet Current":
-            self.current_list[1]=self.parent.magnet_current_list
+        elif command=="PID Setpoint":
+            self.current_list[index]=self.parent.pid_setpoint_list
