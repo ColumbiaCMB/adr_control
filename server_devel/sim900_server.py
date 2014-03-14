@@ -105,6 +105,8 @@ class sim900Server():
         
         self.flag_available=True
         
+        self.overload_wait=0
+        
         
     def start_loop_thread(self):
         if self.loop_thread:
@@ -191,12 +193,19 @@ class sim900Server():
             print 'self.flag_available is %s'%(str(self.flag_available))
             
             if self.data['bridge_overload_status']>0:
-                print 'Bridge is overloaded'
-                if self.data['bridge_autorange_gain']!=1:
-                    print 'Sending correction'
-                    self.send(1,'AGAI ON')
-                else:
+                # Waits for five cycles to see if the error fixes itself, then sends a command to autorange gain.
+                print 'Bridge is overloaded %d'%(self.data['bridge_overload_status'])
+                
+                if self.data['bridge_autorange_gain']==1:
                     print 'Correction in progress'
+                    
+                else:
+                    if self.overload_wait<5:
+                        self.overload_wait+=1
+                    else:
+                        print 'Sending correction'
+                        self.send(1,'AGAI ON')
+                        self.overload_wait=0
                     
 # Simple getting functions
         
