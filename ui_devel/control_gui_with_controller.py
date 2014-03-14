@@ -115,7 +115,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.pid_mode_value.setText('MAN')
             
         self.state_value.setText(self.controller.state)
-        self.flag_value.setText(str(self.controller.active_flag))
+        self.flag_value.setText('flagless system')
         
         #Update Temperature and Setpoint Lists
         if len(self.temp_list) < 500:
