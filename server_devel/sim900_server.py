@@ -79,7 +79,7 @@ class sim900Server():
 # This server will register in pyro namespace, continuously run, and push commands from adr_controller to the sim900.
 
     def __init__(self, command_dictionary=downstairs_command_dictionary, hostname="localhost", port=50001):
-        self.data={}
+        self.data={'group':'sim900'}
         self.state='standby'
         
         self.communicator_lock=threading.Lock()

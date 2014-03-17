@@ -1,5 +1,6 @@
 import threading
 import time
+import Pyro4
 import sim900_communicator
 # Includes methods for talking using sockets
 import smdp
@@ -46,7 +47,7 @@ class cryomechServer():
 # This server will register in pyro namespace, continuously run, and push commands from adr_controller to the sim900.
 
     def __init__(self, query_dictionary=default_query_dictionary, hostname="localhost", port=50001):
-        self.data={}
+        self.data={'group':'cryomech'}
         
         self.communicator_lock=threading.Lock()
         
@@ -92,6 +93,20 @@ class cryomechServer():
                 result=self.smdp.destruct_answer(answer+'\r')
                 # fast_send_and_receive slices off the \r so we add it back in to get the correct amount of characters.
                 self.data[j['name']]=float(result)
-            self.data['time']=time.time()
+            self.data['cryo_time']=time.time()
             time.sleep(5)
             # Not essential that these values are exactly up to date.
+            
+    def fetch_dict(self):
+        return self.data
+            
+def main():
+    cryo=cryomechServer(hostname="192.168.1.152")
+    Pyro4.Daemon.serveSimple(
+            {
+                cryo: "cryomechserver"
+            },
+            ns=True)
+
+if __name__=="__main__":
+    main()

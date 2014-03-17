@@ -34,6 +34,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         super(PlotDialog, self).__init__(parent)
         
         self.sim900=Pyro4.Proxy("PYRONAME:sim900server")
+        self.cryomech=Pyro4.Proxy("PYRONAME:cryomechserver")
         self.controller=adr_controller.AdrController(client=self.sim900,gui_input=True,gui_message_display=self.pass_to_logger)
         self.data_logger=data_logger.DataFile()
         self.message_logger=message_logger.MessageFile(method=self.display)
@@ -54,9 +55,6 @@ class PlotDialog(QDialog,gui.Ui_Form):
         # Needed for starting the plots.
         
         self.setupSlots()
-        
-    def test(self,message):
-        print message
     
            
     def setupTimer(self):
@@ -85,37 +83,46 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.time_list=[]
         
     def update(self):
-        data = self.sim900.fetch_dict()
-        self.data_logger.update(data)
+        sim900_data = self.sim900.fetch_dict()
+        self.data_logger.update(sim900_data)
+        cryomech_data=self.cryomech.fetch_dict()
+        self.data_logger.update(cryomech_data)
         
         
-        temp_bridge = data['bridge_temp_value']
+        temp_bridge = sim900_data['bridge_temp_value']
         self.temp_bridge_value.setText(str(temp_bridge))
-        temp_floating_diode_value = data['therm_temperature2']
+        temp_floating_diode_value = sim900_data['therm_temperature2']
         self.temp_floating_diode_value.setText(str(temp_floating_diode_value))
-        temp_magnet_diode_value = data['therm_temperature1']
+        temp_magnet_diode_value = sim900_data['therm_temperature1']
         self.temp_magnet_diode_value.setText(str(temp_magnet_diode_value))
-        temp_50K = data['therm_temperature0']
+        temp_50K = sim900_data['therm_temperature0']
         self.temp_50k_value.setText(str(temp_50K))
-        current = data['dvm_volts1']
+        current = sim900_data['dvm_volts1']
         self.magnet_current_value.setText(str(current))
-        voltage = data['dvm_volts0']
+        voltage = sim900_data['dvm_volts0']
         self.magnet_voltage_value.setText(str(voltage))
         
-        self.bridge_overload_status_value.setText(str(data['bridge_overload_status']))
-        self.bridge_autorange_gain_value.setText(str(data['bridge_autorange_gain']))
+        self.bridge_overload_status_value.setText(str(sim900_data['bridge_overload_status']))
+        self.bridge_autorange_gain_value.setText(str(sim900_data['bridge_autorange_gain']))
         
-        self.pid_output_value.setText(str(data['pid_output_mon']))
-        pid_setpoint = data['pid_setpoint']
+        self.pid_output_value.setText(str(sim900_data['pid_output_mon']))
+        pid_setpoint = sim900_data['pid_setpoint']
         self.pid_setpoint_value.setText(str(pid_setpoint))
-        self.pid_manual_output_value.setText(str(data['pid_manual_out']))
-        if data['pid_manual_status'] == 1:
+        self.pid_manual_output_value.setText(str(sim900_data['pid_manual_out']))
+        if sim900_data['pid_manual_status'] == 1:
             self.pid_mode_value.setText('PID')
-        if data['pid_manual_status'] == 0:
+        if sim900_data['pid_manual_status'] == 0:
             self.pid_mode_value.setText('MAN')
             
         self.state_value.setText(self.controller.state)
-        self.flag_value.setText('flagless system')
+        
+        # Cryomech values
+        self.temp_water_in_value.setText(str(cryomech_data['temp_water_in']))
+        self.temp_water_out_value.setText(str(cryomech_data['temp_water_out']))
+        self.temp_helium_value.setText(str(cryomech_data['temp_helium']))
+        self.temp_oil_value.setText(str(cryomech_data['temp_oil']))
+        self.avg_pressure_high_value.setText(str(cryomech_data['avg_pressure_high']))
+        self.avg_pressure_low_value.setText(str(cryomech_data['avg_pressure_low']))
         
         #Update Temperature and Setpoint Lists
         if len(self.temp_list) < 500:
@@ -137,10 +144,10 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.magnet_current_list.append(current)
             
         if len(self.time_list) < 500:
-            self.time_list.append(data["time"])
+            self.time_list.append(sim900_data["time"])
         elif len(self.time_list) >= 500:
             del self.time_list[0]
-            self.time_list.append(data["time"])
+            self.time_list.append(sim900_data["time"])
             
         #Update plots by calling the draw function.
         
