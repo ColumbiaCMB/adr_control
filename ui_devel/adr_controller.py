@@ -185,25 +185,25 @@ class AdrController():
             
 ### Regenerate Thread and Methods ###
             
-    def request_regenerate(self,pid_setpoint_goal=2.5, peak_current=1.0, ramp_rate_up=-0.05, ramp_rate_down=0.05, wait_time=0.5):
+    def request_regenerate(self,pid_setpoint_goal=2.5, peak_current=1.0, ramp_rate_up=-0.05, ramp_rate_down=0.05, pid_step=0.001, pause_time=0.5, dwell_time=0.5):
     
         if self.state!='standby':
             self.show('To regenerate, the controller must be in standby mode.')
             return
         self.quit_command_thread=False
-        self.start_command_thread(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down,wait_time)
+        self.start_command_thread(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time)
         
-    def start_command_thread(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down,wait_time):
+    def start_command_thread(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time):
         if self.command_thread:
             if self.command_thread.is_alive():
                 self.show("loop already running")
                 return
                 
-        self.command_thread=threading.Thread(target=self.regenerate_loop,args=(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down,wait_time))
+        self.command_thread=threading.Thread(target=self.regenerate_loop,args=(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time))
         self.command_thread.daemon=True
         self.command_thread.start()
         
-    def regenerate_loop(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down,wait_time):
+    def regenerate_loop(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time):
     
         self.magup(peak_current,ramp_rate_up)
         if self.quit_command_thread==True:
@@ -213,7 +213,7 @@ class AdrController():
         if self.quit_command_thread==True:
             self.show('Regenerate thread exited.')
             return
-        self.dwell(wait_time)
+        self.dwell(dwell_time)
         if self.quit_command_thread==True:
             self.show('Regenerate thread exited.')
             return
@@ -225,7 +225,11 @@ class AdrController():
         if self.quit_command_thread==True:
             self.show('Regenerate thread exited.')
             return
-        self.request_regulate(pid_setpoint_goal)
+        self.pause(pause_time)
+        if self.quit_command_thread==True:
+            self.show('Regenerate thread exited.')
+            return
+        self.request_regulate(pid_setpoint_goal,pid_step)
         return
                 
     def magup(self,peak_current,ramp_rate_up):
@@ -233,14 +237,26 @@ class AdrController():
         self.request_user_input(message='Close heat switch.')
         self.ramp_up(peak_current,ramp_rate_up)
         
-    def dwell(self, wait_time=0.5):
+    def dwell(self, dwell_time=0.5):
         # Waits an alloted time at the peak current for temperature to equalize.
-        wait_time_in_seconds=wait_time*60
+        dwell_time_in_seconds=dwell_time*60
         start=time.time()
         tic=time.time()
-        while tic-start<wait_time_in_seconds:
+        while tic-start<dwell_time_in_seconds:
             if self.quit_command_thread==True:
-                self.show('Regenerate thread exited.')
+                self.show('Dwell before ramp down exited.')
+                return
+            time.sleep(0.01)
+            tic=time.time()
+            
+    def pause(self, pause_time=0.5):
+        # Waits an alloted time at zero current for temperature to equalize.
+        pause_time_in_seconds=pause_time*60
+        start=time.time()
+        tic=time.time()
+        while tic-start<pause_time_in_seconds:
+            if self.quit_command_thread==True:
+                self.show('Pause before regulation exited.')
                 return
             time.sleep(0.01)
             tic=time.time()
@@ -249,7 +265,7 @@ class AdrController():
         # Waits until the system has finished ramping up or down.
         while self.state != signal:
             if self.quit_command_thread==True:
-                self.show('Regenerate thread exited.')
+                self.show('Wait for %s terminated'%(signal))
                 return
             time.sleep(0.01)
         
@@ -376,9 +392,10 @@ class AdrController():
         # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries)
         return True
             
-    def request_regulate(self,pid_setpoint_goal):
+    def request_regulate(self,pid_setpoint_goal,pid_step=0.001):
     
         self.pid_goal=pid_setpoint_goal
+        self.pid_step=pid_step
         self.state='start_regulate'
         self.client.set_state('regulate')
 
@@ -401,7 +418,6 @@ class AdrController():
 ### Display messages ###
 
     def show(self,message):
-        #timestamp=time.strftime('%m-%d_%H-%M-%S ')
         if self.gui_message_display==None:
             print str(message)
         else:

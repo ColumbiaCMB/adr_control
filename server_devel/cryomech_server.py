@@ -1,4 +1,5 @@
 import threading
+import numpy as np
 import time
 import Pyro4
 import sim900_communicator
@@ -87,12 +88,22 @@ class cryomechServer():
     def follow_query_dict(self):
         # A single loop takes about 0.25 seconds
         while True:
-            for j in self.query_dictionary:
-                msg=self.smdp.construct_msg(j['hashcode'])
-                answer=self.communicator.fast_send_and_receive(msg,terminator='\r',end_of_response='\r')
-                result=self.smdp.destruct_answer(answer+'\r')
-                # fast_send_and_receive slices off the \r so we add it back in to get the correct amount of characters.
-                self.data[j['name']]=float(result)
+            try:
+                for j in self.query_dictionary:
+                    msg=self.smdp.construct_msg(j['hashcode'])
+                    answer=self.communicator.fast_send_and_receive(msg,terminator='\r',end_of_response='\r')
+                    result=self.smdp.destruct_answer(answer+'\r')
+                    # fast_send_and_receive slices off the \r so we add it back in to get the correct amount of characters.
+                    try:
+                        self.data[j['name']]=float(result)
+                    except ValueError as e:
+                        print 'Value error in key %s. NaN inserted. Error printed below.'%(j['name'])
+                        print e
+                        self.data[j['name']]=np.nan
+                        
+            except Exception as e:
+                print 'ERROR ENCOUNTERED. Loop ended and will start from the beginning after normal wait period.'
+                print e
             self.data['cryo_time']=time.time()
             time.sleep(5)
             # Not essential that these values are exactly up to date.

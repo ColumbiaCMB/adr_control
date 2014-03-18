@@ -61,7 +61,6 @@ class DataFile():
                         self.nc.groups[group].variables[key][length]=np.nan
                         
         else:
-            print 'Group %s created'%(group)
             group=self.nc.createGroup(group)
             time_dim=group.createDimension('time',None)
             self.update(data)

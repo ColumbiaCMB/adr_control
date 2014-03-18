@@ -172,11 +172,15 @@ class PlotDialog(QDialog,gui.Ui_Form):
         current=self.peak_current_value.value()
         rru=self.ramp_rate_up_value.value()
         rrd=self.ramp_rate_down_value.value()
-        self.controller.request_regenerate(pid_setpoint_goal=setpoint,peak_current=current, ramp_rate_up=rru, ramp_rate_down=rrd)
+        step=self.pid_step_value.value()
+        dwell=self.dwell_time_value.value()
+        pause=self.pause_time_value.value()
+        self.controller.request_regenerate(pid_setpoint_goal=setpoint,peak_current=current, ramp_rate_up=rru, ramp_rate_down=rrd, pid_step=step, pause_time=pause, dwell_time=dwell)
         
     def request_regulate(self):
         setpoint=self.setpoint_value.value()
-        self.controller.request_regulate(setpoint)
+        step=self.pid_step_value.value()
+        self.controller.request_regulate(pid_setpoint_goal=setpoint,pid_step=step)
         
     def raise_message_box(self,msg):
         msg_box=QMessageBox()
