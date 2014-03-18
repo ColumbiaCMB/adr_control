@@ -6,7 +6,6 @@ import os
 class MessageFile():
     def __init__(self,method=None,base_dir='/home/adclocal/data/garbage_cooldown_logs/gui_logs',suffix=''):
     
-        ### Eventually add custom file creation/naming like data_logger here.###
         base_dir=os.path.expanduser(base_dir)
                 
         fn=time.strftime('%Y-%m-%d_%H-%M-%S')

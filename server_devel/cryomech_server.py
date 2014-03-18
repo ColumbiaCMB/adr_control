@@ -1,5 +1,7 @@
 import threading
 import numpy as np
+import os
+import logging
 import time
 import Pyro4
 import sim900_communicator
@@ -59,20 +61,42 @@ class cryomechServer():
         
         self.query_dictionary=query_dictionary
         
+        self.setup_logger()
         
         self.loop_thread=None
         self.start_loop_thread()
         
+    def setup_logger(self,base_dir='/home/adclocal/data/garbage_cooldown_logs/server_logs/cryomech_server_logs',suffix=''):
+        base_dir=os.path.expanduser(base_dir)
+        
+        fn=time.strftime('%Y-%m-%d_%H-%M-%S')
+        if suffix:
+            suffix=suffix.replace(' ','_')
+            fn+=('_'+suffix)
+        fn+='.log'
+        fn = os.path.join(base_dir,fn)
+        self.filename=fn
+        # Creates filename based on timestamp (year,month,day,hr,min,sec,suffix)
+        
+        self.logger=logging.getLogger('sim900_logger')
+        self.logger.setLevel(logging.DEBUG)
+        self.formatter=logging.Formatter('%(asctime)s %(levelname)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        self.file_handler=logging.FileHandler(filename=fn)
+        self.file_handler.setLevel(logging.DEBUG)
+        self.file_handler.setFormatter(self.formatter)
+        self.logger.addHandler(self.file_handler)
+        
     def start_loop_thread(self):
         if self.loop_thread:
             if self.loop_thread.is_alive():
-                print "loop already running"
+                self.logger.warning("loop already running")
                 return
         self.loop_thread=threading.Thread(target=self.follow_query_dict)
         self.loop_thread.daemon=True
         self.loop_thread.start()
         
     def test_connect(self):
+        # Just for debugging.
         for j in self.query_dictionary:
             print j['name']
             q=j['hashcode']
@@ -89,6 +113,7 @@ class cryomechServer():
         # A single loop takes about 0.25 seconds
         while True:
             try:
+                tic=time.time()
                 for j in self.query_dictionary:
                     msg=self.smdp.construct_msg(j['hashcode'])
                     answer=self.communicator.fast_send_and_receive(msg,terminator='\r',end_of_response='\r')
@@ -97,13 +122,14 @@ class cryomechServer():
                     try:
                         self.data[j['name']]=float(result)
                     except ValueError as e:
-                        print 'Value error in key %s. NaN inserted. Error printed below.'%(j['name'])
-                        print e
+                        self.logger.warning('Value error in key %s. NaN inserted. Error printed below.'%(j['name']))
+                        self.logger.warning(e)
                         self.data[j['name']]=np.nan
-                        
+                toc=time.time()
+                self.logger.info('Loading dictionary took %f seconds'%(toc-tic)) 
             except Exception as e:
-                print 'ERROR ENCOUNTERED. Loop ended and will start from the beginning after normal wait period.'
-                print e
+                self.logger.error('ERROR ENCOUNTERED. Loop ended and will start from the beginning after normal wait period.')
+                self.logger.error(e)
             self.data['cryo_time']=time.time()
             time.sleep(5)
             # Not essential that these values are exactly up to date.

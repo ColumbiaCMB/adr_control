@@ -3,6 +3,8 @@ import time
 import sim900_communicator
 import threading
 import numpy as np
+import logging
+import os
 
 downstairs_command_dictionary={
                                     1:
@@ -96,22 +98,45 @@ class sim900Server():
         
         self.command_dictionary=command_dictionary
         
-        
+        self.setup_logger()
         self.loop_thread=None
         self.start_loop_thread()
         
         self.state=0
+        self.flag_available=True
+        # Don't use these much anymore.
+        
         self.fixing=False
         
-        self.flag_available=True
+        
         
         self.overload_wait=0
+        
+    def setup_logger(self,base_dir='/home/adclocal/data/garbage_cooldown_logs/server_logs/sim900_server_logs',suffix=''):
+        base_dir=os.path.expanduser(base_dir)
+        
+        fn=time.strftime('%Y-%m-%d_%H-%M-%S')
+        if suffix:
+            suffix=suffix.replace(' ','_')
+            fn+=('_'+suffix)
+        fn+='.log'
+        fn = os.path.join(base_dir,fn)
+        self.filename=fn
+        # Creates filename based on timestamp (year,month,day,hr,min,sec,suffix)
+        
+        self.logger=logging.getLogger('sim900_logger')
+        self.logger.setLevel(logging.DEBUG)
+        self.formatter=logging.Formatter('%(asctime)s %(levelname)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        self.file_handler=logging.FileHandler(filename=fn)
+        self.file_handler.setLevel(logging.DEBUG)
+        self.file_handler.setFormatter(self.formatter)
+        self.logger.addHandler(self.file_handler)
         
         
     def start_loop_thread(self):
         if self.loop_thread:
             if self.loop_thread.is_alive():
-                print "loop already running"
+                self.logger.warning("loop already running")
                 return
         self.loop_thread=threading.Thread(target=self.follow_command_dict)
         self.loop_thread.daemon=True
@@ -161,8 +186,8 @@ class sim900Server():
                                 try:
                                     self.data[newkey]=results[i]
                                 except ValueError as e:
-                                    print 'Value error in key %s. NaN inserted. Error printed below.'%(key)
-                                    print e
+                                    self.logger.warning('Value error in key %s. NaN inserted. Error printed below.'%(key))
+                                    self.logger.warning(e)
                                     self.data[newkey]=np.nan
                             
                         else:
@@ -170,16 +195,16 @@ class sim900Server():
                             try:
                                 self.data[j['name']]=float(result)
                             except ValueError as e:
-                                print 'Value error in key %s. NaN inserted. Error printed below.'%(key)
-                                print e
+                                self.logger.info('Value error in key %s. NaN inserted. Error printed below.'%(key))
+                                self.logger.info(e)
                                 self.data[j['name']]=np.nan
                             
                         #toc=time.time()
                         #print '%s took %f seconds' % (msg,(toc-tic))
                 except Exception as e:
                 
-                    print 'ERROR ENCOUNTERED. Loop ended, lock released, and system will try to go back to mainframe.'
-                    print e
+                    self.logger.error('ERROR ENCOUNTERED. Loop ended, lock released, and system will try to go back to mainframe.')
+                    self.logger.error(e)
                     
                 finally:
                     #end_port_time=time.time()
@@ -189,21 +214,21 @@ class sim900Server():
                     
             self.data['time']=time.time()
             
-            print "Total data loading took %f seconds" %(self.data['time']-start)
-            print 'self.flag_available is %s'%(str(self.flag_available))
+            self.logger.info("Total data loading took %f seconds" %(self.data['time']-start))
+            self.logger.debug('self.flag_available is %s'%(str(self.flag_available)))
             
             if self.data['bridge_overload_status']>0:
                 # Waits for five cycles to see if the error fixes itself, then sends a command to autorange gain.
-                print 'Bridge is overloaded %d'%(self.data['bridge_overload_status'])
+                self.logger.warning('Bridge is overloaded %d'%(self.data['bridge_overload_status']))
                 
                 if self.data['bridge_autorange_gain']==1:
-                    print 'Correction in progress'
+                    self.logger.warning('Correction in progress')
                     
                 else:
                     if self.overload_wait<5:
                         self.overload_wait+=1
                     else:
-                        print 'Sending correction'
+                        self.logger.warning('Sending correction')
                         self.send(1,'AGAI ON')
                         self.overload_wait=0
                     
@@ -246,7 +271,7 @@ class sim900Server():
             try:
                 return float(result)
             except ValueError as e:
-                print e
+                self.logger.warning(e)
                 return False
         
     def set_manual_output(self,manual_out):
@@ -261,7 +286,7 @@ class sim900Server():
             try:
                 return float(result)
             except ValueError as e:
-                print e
+                self.logger.warning(e)
                 return False
     
     def set_pid_manual_status(self,manual_status):
@@ -276,8 +301,8 @@ class sim900Server():
             self.communicator.send('xxx')
             return True
         except Exception as e:
-            print 'Error encountered when sending CONN terminator ("xxx").'
-            print e
+            self.logger.warning('Error encountered when sending CONN terminator ("xxx").')
+            self.logger.warning(e)
             return False
             
             # Need more error checking?
@@ -301,8 +326,8 @@ class sim900Server():
             self.send_direct(port,msg)
             return True
         except Exception as e:
-            print 'Error encountered when sending message %s to port %d'%(msg,port)
-            print e
+            self.logger.warning('Error encountered when sending message %s to port %d'%(msg,port))
+            self.logger.warning(e)
             return False
         finally:
             self.server_lock.release()
@@ -323,8 +348,8 @@ class sim900Server():
             result=self.query_port_direct(port,msg)
             return result
         except Exception as e:
-            print 'Error encountered when sending message %s to port %d'%(msg,port)
-            print e
+            self.logger.warning('Error encountered when sending message %s to port %d'%(msg,port))
+            self.logger.warning(e)
             return False
         finally:
             self.server_lock.release()
@@ -338,9 +363,9 @@ class sim900Server():
                 if each['command']==msg:
                     try:
                         self.data[each['name']]=float(result)
-                        print 'out of date value updated, %s is now %f'%(each['name'],float(result))
+                        self.logger.info('out of date value updated, %s is now %f'%(each['name'],float(result)))
                     except ValueError as e:
-                        print e
+                        self.logger.info(e)
         return result
         # If the result belongs in self.data, the value is updated. Query_port is often used for verification after setting
         # pid_manual_out or pid_setpoint to a new value. It takes ~2.5 seconds for the server to 'catch up' to this reset on its own,
