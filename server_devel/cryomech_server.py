@@ -130,7 +130,7 @@ class cryomechServer():
             except Exception as e:
                 self.logger.error('ERROR ENCOUNTERED. Loop ended and will start from the beginning after normal wait period.')
                 self.logger.error(e)
-            self.data['cryo_time']=time.time()
+            self.data['time']=time.time()
             time.sleep(5)
             # Not essential that these values are exactly up to date.
             

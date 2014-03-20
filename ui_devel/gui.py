@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Tue Mar 18 10:51:40 2014
+# Created: Wed Mar 19 16:13:00 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -431,7 +431,7 @@ class Ui_Form(object):
         self.ramp_rate_up_value.setMinimum(0.0)
         self.ramp_rate_up_value.setMaximum(0.1)
         self.ramp_rate_up_value.setSingleStep(0.001)
-        self.ramp_rate_up_value.setProperty("value", 0.05)
+        self.ramp_rate_up_value.setProperty("value", 0.01)
         self.ramp_rate_up_value.setObjectName(_fromUtf8("ramp_rate_up_value"))
         self.verticalLayout_14.addWidget(self.ramp_rate_up_value)
         self.label_31 = QtGui.QLabel(self.tabWidgetPage2)
@@ -443,7 +443,7 @@ class Ui_Form(object):
         self.ramp_rate_down_value.setMinimum(0.0)
         self.ramp_rate_down_value.setMaximum(0.1)
         self.ramp_rate_down_value.setSingleStep(0.001)
-        self.ramp_rate_down_value.setProperty("value", 0.025)
+        self.ramp_rate_down_value.setProperty("value", 0.01)
         self.ramp_rate_down_value.setObjectName(_fromUtf8("ramp_rate_down_value"))
         self.verticalLayout_14.addWidget(self.ramp_rate_down_value)
         self.gridLayout_8.addLayout(self.verticalLayout_14, 0, 0, 1, 1)
@@ -591,7 +591,7 @@ class Ui_Form(object):
         self.retranslateUi(Form)
         self.plotoptions.setCurrentIndex(0)
         self.plotoptions2.setCurrentIndex(1)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):

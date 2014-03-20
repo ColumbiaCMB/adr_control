@@ -15,6 +15,8 @@ class AdrController():
         self.ramp_goal=0.0
         self.pid_goal=0.0
         self.pid_step=0.001
+        self.manual_output_now=0
+        self.pid_setpoint_now=0
         # parameters for ramping current and pid_setpoint
         
         self.recent_current_values = []
@@ -75,9 +77,14 @@ class AdrController():
                         self.state='regulate'
                     else:
                         if self.data['pid_manual_status']==1:
-                            self.request_manual_output_on()
-                        self.ramp_step=0.05
-                        self.client.set_manual_output(self.data['pid_manual_out']-self.ramp_step)
+                            success=self.request_manual_output_on()
+                            if success==False:
+                                continue
+                        
+                        success=self.client.set_manual_output(self.manual_output_now-self.ramp_step)
+                        # Ramp step is set in request_regulate
+                        if success==True:
+                            self.manual_output_now-=self.ramp_step
                         
                 
                 if self.state=='regulate':
@@ -89,7 +96,9 @@ class AdrController():
                             # Switches from the manual output to PID.
                             # This could happen from an overload or from start_regulate's ramping to a minimum current.
                             self.show('Switching to PID output.')
-                            self.request_pid_output_on()
+                            success=self.request_pid_output_on()
+                            if success==False:
+                                continue
                 
                 
                         
@@ -101,16 +110,21 @@ class AdrController():
                         if len(self.recent_current_values)>=20 and mean<0.03:
                             self.show('Current too low to regulate. Ramping to zero current.')
                             self.recent_current_values=[]
+                            self.request_manual_output_on()
                             self.ramp_down()
                             
                             
-                        difference=self.pid_goal - self.data['pid_setpoint']
+                        difference=self.pid_goal - self.pid_setpoint_now
                         if difference >0:
-                            self.client.set_pid_setpoint(self.data['pid_setpoint']+(self.pid_step*self.refresh_rate))
+                            #self.client.set_pid_setpoint(self.data['pid_setpoint']+(self.pid_step*self.refresh_rate))
+                            success=self.client.set_pid_setpoint(self.pid_setpoint_now+self.pid_step)
+                            if success==True:
+                                self.pid_setpoint_now+=self.pid_step
                         if difference < 0:
                             #ramp setpoint down.
-                            self.client.set_pid_setpoint(self.data['pid_setpoint']-(self.pid_step*self.refresh_rate))
-                            
+                            success=self.client.set_pid_setpoint(self.pid_setpoint_now-self.pid_step)
+                            if success==True:
+                                self.pid_setpoint_now-=self.pid_step
                         if abs(difference)<=0.03*self.pid_goal and difference!=0:
                             # Once we are close enough, we simply set the setpoint to our goal.
                             self.client.set_pid_setpoint(self.pid_goal)
@@ -118,15 +132,18 @@ class AdrController():
                     if fixing_flag:
                         if self.data['pid_manual_status']==1:
                             self.show('Switching to manual output until autorange gain finished.')
-                            self.request_manual_output_on()
+                            success=self.request_manual_output_on()
+                            if success==False:
+                                continue
                             # Holds the output constant until the overload is fixed.
                         
                     
                 if self.state=='ramping_up':
                 
                     if self.data['pid_manual_status']==1:
-                        # check that manual output on
-                        self.request_manual_output_on()
+                        success=self.request_manual_output_on()
+                        if success==False:
+                            continue
                 
                     # Makes sure the current stays within acceptable bounds. 
                     if self.data['dvm_volts1']>=9.7:
@@ -135,29 +152,40 @@ class AdrController():
                     if self.data['dvm_volts1']>=self.ramp_goal:
                         self.state='dwell'
                         raise ValueError('Ramp goal reached. State switched to dwell.')
-                    self.client.set_manual_output(self.data['pid_manual_out']-self.ramp_step)
+                    #self.client.set_manual_output(self.data['pid_manual_out']-self.ramp_step)
+                    success=self.client.set_manual_output(self.manual_output_now-self.ramp_step)
+                    if success==True:
+                        self.manual_output_now-=self.ramp_step
                     
                     
                 if self.state=='ramping_down':
                 
                     if self.data['pid_manual_status']==1:
                         # check that manual output on
-                        self.request_manual_output_on()
+                        success=self.request_manual_output_on()
+                        if success==False:
+                            continue
                 
                     if self.data['dvm_volts1']<=0:
                         self.state='standby'
                         raise ValueError('Ramp goal reached. State switched to standby.')
-                    self.client.set_manual_output(self.data['pid_manual_out']+self.ramp_step)
+                    success=self.client.set_manual_output(self.manual_output_now+self.ramp_step)
+                    if success==True:
+                        self.manual_output_now+=self.ramp_step
                     
                 if self.state=="dwell":
                     if self.data['pid_manual_status']==1:
                         # check that manual output on
-                        self.request_manual_output_on()
+                        success=self.request_manual_output_on()
+                        if success==False:
+                            continue
                     pass
                 if self.state=="standby":
                     if self.data['pid_manual_status']==1:
                         # check that manual output on
-                        self.request_manual_output_on()
+                        success=self.request_manual_output_on()
+                        if success==False:
+                            continue
                     pass
                     
             except ValueError as e:
@@ -277,14 +305,18 @@ class AdrController():
 ### Ramping methods ###
         
     def ramp_up(self,goal,rate=0.01):
+        self.manual_output_now=self.data['pid_manual_out']
+        # This is to make sure that we are ramping off of the correct manual output. If pid switches to manual, this will be redundant, but if we are already in manual mode it is not.
+        
         self.state='ramping_up'
         self.client.set_state('ramping_up')
         self.ramp_step=rate*self.refresh_rate
         self.ramp_goal=goal
         # rate should be in volts/second and refresh rate is the time between function loops.
-        return
+        
             
     def ramp_down(self,rate=0.01):
+        self.manual_output_now=self.data['pid_manual_out']
         
         self.state='ramping_down'
         self.client.set_state('ramping_down')
@@ -334,7 +366,9 @@ class AdrController():
             self.show('Output mode already manual.')
            
         self.data=self.client.fetch_dict()
-        # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries) 
+        # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries)
+        self.manual_output_now=self.data['pid_manual_out']
+        # Sets the internal variable to the data value.
         return True
             
 ### Regulate Methods ###
@@ -390,18 +424,28 @@ class AdrController():
             
         self.data=self.client.fetch_dict()
         # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries)
+        self.pid_setpoint_now=self.data['pid_setpoint']
+        # Sets the internal variable to the data value.
         return True
             
-    def request_regulate(self,pid_setpoint_goal,pid_step=0.001):
+    def request_regulate(self,pid_setpoint_goal,pid_step=0.001, ramp_up=0.01):
     
         self.pid_goal=pid_setpoint_goal
-        self.pid_step=pid_step
+        self.pid_step=pid_step*self.refresh_rate
+        
+        self.pid_setpoint_now=self.data['pid_setpoint']
+        self.manual_output_now=self.data['pid_manual_out']
+        # This is to make sure that we are ramping off of the correct setpoint. If pid switches to pid mode, this will be redundant, but we may change from regulating at one setpoint to regulating at another.
+        
+        self.ramp_step=ramp_up*self.refresh_rate
+        
         self.state='start_regulate'
         self.client.set_state('regulate')
+        
 
 ### Standby ###
         
-    def request_standby(self):
+    def request_standby(self,ramp_down=0.01):
         if self.command_thread:
             self.quit_command_thread=True
             
@@ -410,6 +454,7 @@ class AdrController():
     
         if self.data['dvm_volts1']>=0:
             # Ramps to zero if not already there.
+            self.ramp_step=ramp_down*self.refresh_rate
             self.ramp_down()
         else:
             self.request_manual_output_on()
