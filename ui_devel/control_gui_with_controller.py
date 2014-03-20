@@ -40,7 +40,9 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.message_logger=message_logger.MessageFile(method=self.display)
         # Sets up sim900 pyro proxy, AdrController, and data_logger - which records data in a netcdf format.
         
-        
+        self.last_sim900_timestamp=0
+        self.last_cryomech_timestamp=0
+        # Used to make sure dictionaries are fully populated before the GUI logs them.
         
         self.__app = qApp
         self.setupUi(self)
@@ -70,7 +72,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         
         QObject.connect(self.regenerate_button,SIGNAL("clicked()"), self.request_regenerate)
         QObject.connect(self.regulate_button,SIGNAL("clicked()"), self.request_regulate)
-        QObject.connect(self.stop_button,SIGNAL("clicked()"), self.controller.request_standby)
+        QObject.connect(self.stop_button,SIGNAL("clicked()"), self.request_standby)
         
         QObject.connect(self.plotoptions,SIGNAL("activated(const QString&)"),self.plot_toggle1)
         QObject.connect(self.plotoptions2,SIGNAL("activated(const QString&)"),self.plot_toggle2)
@@ -84,9 +86,19 @@ class PlotDialog(QDialog,gui.Ui_Form):
         
     def update(self):
         sim900_data = self.sim900.fetch_dict()
-        self.data_logger.update(sim900_data)
+        if sim900_data['time']==self.last_sim900_timestamp:
+            # Throws out the dictionary and ends if the timestamp hasn't changed.
+            return
+        else:
+            self.last_sim900_timestamp=sim900_data['time']
+            self.data_logger.update(sim900_data)
+            
         cryomech_data=self.cryomech.fetch_dict()
-        self.data_logger.update(cryomech_data)
+        if cryomech_data['time']==self.last_cryomech_timestamp:
+            return
+        else:
+            self.last_cryomech_timestamp=sim900_data['time']
+            self.data_logger.update(cryomech_data)
         
         
         temp_bridge = sim900_data['bridge_temp_value']
@@ -180,7 +192,12 @@ class PlotDialog(QDialog,gui.Ui_Form):
     def request_regulate(self):
         setpoint=self.setpoint_value.value()
         step=self.pid_step_value.value()
-        self.controller.request_regulate(pid_setpoint_goal=setpoint,pid_step=step)
+        rru=self.ramp_rate_up_value.value()
+        self.controller.request_regulate(pid_setpoint_goal=setpoint,pid_step=step, ramp_up=rru)
+        
+    def request_standby(self):
+        rrd=self.ramp_rate_down_value.value()
+        self.controller.request_standby(ramp_down=rrd)
         
     def raise_message_box(self,msg):
         msg_box=QMessageBox()
