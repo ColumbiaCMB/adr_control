@@ -260,7 +260,7 @@ class AdrController():
         else:
             self.message_for_gui=message
             while self.gui_response != True:
-                pass
+                time.sleep(0.001)
                 # function returns true/false after popping up an alert in the GUI.
             self.message_for_gui=None
             self.gui_response=False
@@ -319,7 +319,15 @@ class AdrController():
                 
     def magup(self,peak_current,ramp_rate_up):
         self.request_user_input(message='Switch to Mag Cycle.')
+        if self.quit_command_thread==True:
+            self.show('Magup exited.')
+            return
+        time.sleep(0.5)
+        # Make sure the popups don't come up so fast the user clicks both.
         self.request_user_input(message='Close heat switch.')
+        if self.quit_command_thread==True:
+            self.show('Magup exited.')
+            return
         self.ramp_up(peak_current,ramp_rate_up)
         
     def dwell(self, dwell_time=0.5):
@@ -356,7 +364,12 @@ class AdrController():
         
     def demag(self,ramp_rate_down):
         self.request_user_input(message='Open heat switch.')
+        if self.quit_command_thread==True:
         
+        # Should probably handle this case. What to do? Still ramp down? That is exactly what this already does.
+        
+            self.show('Demag exited.')
+            return
         self.ramp_down(ramp_rate_down)
         
 ### Ramping methods ###
@@ -489,7 +502,9 @@ class AdrController():
             
     def request_regulate(self,pid_setpoint_goal,pid_step=0.001, ramp_up=0.01):
     
-        self.request_user_input(message='Switch to Regulate.')
+        #self.request_user_input(message='Switch to Regulate.')
+        # This doesn't work because request_regulate gets called from the main thread, which means this function freezes everything else, including the method that raises the message box
+        # and sets the user response=True
     
         self.pid_goal=pid_setpoint_goal
         self.pid_step=pid_step*self.refresh_rate

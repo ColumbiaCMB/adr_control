@@ -206,8 +206,14 @@ class PlotDialog(QDialog,gui.Ui_Form):
         
         action_button=QPushButton('OK')
         action_button.clicked.connect(self.respond_to_controller)
-        test_button=msg_box.addButton(action_button, QMessageBox.ActionRole)
-        #cancel_button=msg_box.addButton(QPushButton('Cancel'), QMessageBox.RejectRole)
+        msg_box.addButton(action_button, QMessageBox.ActionRole)
+        
+        quit_button=QPushButton('Quit')
+        quit_button.clicked.connect(self.respond_to_controller_and_exit)
+        msg_box.addButton(quit_button, QMessageBox.ActionRole)
+        
+        msg_box.setDefaultButton(quit_button)
+        # If enter is pressed, quit is selected automatically.
         
         msg_box.exec_()
         
@@ -220,6 +226,10 @@ class PlotDialog(QDialog,gui.Ui_Form):
     def respond_to_controller(self):
         self.controller.gui_response=True
         
+    def respond_to_controller_and_exit(self):
+        self.controller.quit_command_thread=True
+        self.controller.gui_response=True
+        
     def check_for_message(self):
         if self.controller.message_for_gui!=None:
             'controller message found'
@@ -228,7 +238,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
     def setupTimer2(self):
         self.timer2 = QTimer()
         self.timer2.timeout.connect(self.check_for_message)
-        self.timer2.start(1000)
+        self.timer2.start(2000)
         
 def main():
     app = QApplication(sys.argv)
