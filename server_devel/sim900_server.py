@@ -82,6 +82,8 @@ class sim900Server():
 
     def __init__(self, command_dictionary=downstairs_command_dictionary, hostname="localhost", port=50001):
         self.data={'group':'sim900'}
+        self.finished_data={}
+        # Finished data will never be partially populated. I have not really taken advantage of this yet, however.
         self.state='standby'
         
         self.communicator_lock=threading.Lock()
@@ -213,6 +215,8 @@ class sim900Server():
                     self.go_to_mainframe()
                     
             self.data['time']=time.time()
+            self.finished_data=self.data
+            self.new_data_flag=True
             
             self.logger.info("Total data loading took %f seconds" %(self.data['time']-start))
             self.logger.debug('self.flag_available is %s'%(str(self.flag_available)))
@@ -235,7 +239,7 @@ class sim900Server():
 # Simple getting functions
         
     def fetch_dict(self):
-        return self.data
+        return self.finished_data
         
     def fetch_state(self):
         return self.state

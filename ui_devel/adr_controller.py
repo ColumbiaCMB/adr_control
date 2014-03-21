@@ -1,5 +1,6 @@
 import threading
 import time
+import numpy as np
 
 import Pyro4
 
@@ -15,9 +16,18 @@ class AdrController():
         self.ramp_goal=0.0
         self.pid_goal=0.0
         self.pid_step=0.001
-        self.manual_output_now=0
-        self.pid_setpoint_now=0
         # parameters for ramping current and pid_setpoint
+        
+        self.client=client
+        self.data=self.client.fetch_dict()
+        self.manual_output_now=self.data['pid_manual_out']
+        self.pid_setpoint_now=self.data['pid_setpoint']
+        # parameters to keep track of the state of the system
+        
+        
+        self.pid_max_output=0.0
+        self.pid_min_output=-7.0
+        # Limits to the pid_manual_output
         
         self.recent_current_values = []
         # Use to determine whether to ramp down after regulate.
@@ -28,7 +38,7 @@ class AdrController():
         self.message_for_gui=None
         self.gui_message_display=gui_message_display
         
-        self.client=client
+        
         
         self.loop_thread=None
         self.command_thread=None
@@ -105,7 +115,8 @@ class AdrController():
                         self.recent_current_values.append(self.data['dvm_volts1'])
                         if len(self.recent_current_values)>20:
                             del self.recent_current_values[0]
-                        mean=sum(self.recent_current_values)/len(self.recent_current_values)
+                        mean=np.mean(self.recent_current_values)
+                        
                         # Checks if the average of the last 20 values is less than 0.03 A. If so, the current is too low to regulate.
                         if len(self.recent_current_values)>=20 and mean<0.03:
                             self.show('Current too low to regulate. Ramping to zero current.')
@@ -151,11 +162,19 @@ class AdrController():
                         raise ValueError('Magnet current is at max. State has been set to dwell.')
                     if self.data['dvm_volts1']>=self.ramp_goal:
                         self.state='dwell'
-                        raise ValueError('Ramp goal reached. State switched to dwell.')
-                    #self.client.set_manual_output(self.data['pid_manual_out']-self.ramp_step)
-                    success=self.client.set_manual_output(self.manual_output_now-self.ramp_step)
-                    if success==True:
-                        self.manual_output_now-=self.ramp_step
+                        raise ValueError('Ramp up goal of %f reached. State switched to dwell.'%(self.ramp_goal))
+                    
+                    new_output=self.manual_output_now-self.ramp_step
+                    if new_output>=self.pid_min_output:
+                        success=self.client.set_manual_output(new_output)
+                        if success==True:
+                            self.manual_output_now-=self.ramp_step
+                    else:
+                        success=self.client.set_manual_output(self.pid_min_output)
+                        if success==True:
+                            self.manual_output_now=self.pid_min_output
+                            self.state='dwell'
+                            raise ValueError('Ramp up ended because pid manual output reached minimum of %f. State switched to dwell.'%(self.pid_min_output))
                     
                     
                 if self.state=='ramping_down':
@@ -168,10 +187,22 @@ class AdrController():
                 
                     if self.data['dvm_volts1']<=0:
                         self.state='standby'
-                        raise ValueError('Ramp goal reached. State switched to standby.')
+                        raise ValueError('Ramp down goal of %f reached. State switched to standby.'%(self.ramp_goal))
                     success=self.client.set_manual_output(self.manual_output_now+self.ramp_step)
                     if success==True:
                         self.manual_output_now+=self.ramp_step
+                        
+                    new_output=self.manual_output_now+self.ramp_step
+                    if new_output<=self.pid_max_output:
+                        success=self.client.set_manual_output(new_output)
+                        if success==True:
+                            self.manual_output_now+=self.ramp_step
+                    else:
+                        success=self.client.set_manual_output(self.pid_max_output)
+                        if success==True:
+                            self.manual_output_now=self.pid_max_output
+                            self.state='standby'
+                            raise ValueError('Ramp up ended because pid manual output reached maximum of %f. State switched to standby.'%(self.pid_max_output))
                     
                 if self.state=="dwell":
                     if self.data['pid_manual_status']==1:
@@ -186,8 +217,32 @@ class AdrController():
                         success=self.request_manual_output_on()
                         if success==False:
                             continue
-                    pass
-                    
+                    if self.manual_output_now!=0:
+                        if abs(self.data['pid_manual_out'])<=0.0001:
+                        # If there is a small deviation, manual_output_now should be zero
+                            self.manual_output_now=0
+                            continue
+                        if self.manual_output_now>0:
+                            self.ramp_step=0.005*self.refresh_rate
+                            new_output=self.manual_output_now-self.ramp_step
+                            if new_output<=0:
+                                success=self.client.set_manual_output(new_output)
+                                if success==True:
+                                    self.manual_output_now-=self.ramp_step
+                            else:
+                                success=self.client.set_manual_output(0)
+                        if self.manual_output_now<0:
+                            # If below zero (the system started that way, for example) slowly ramp back to zero.
+                            # Can't use ramp_up because it uses current.
+                            self.ramp_step=0.005*self.refresh_rate
+                            new_output=self.manual_output_now+self.ramp_step
+                            if new_output<=0:
+                                success=self.client.set_manual_output(new_output)
+                                if success==True:
+                                    self.manual_output_now+=self.ramp_step
+                            else:
+                                success=self.client.set_manual_output(0)
+                            
             except ValueError as e:
                 # Deals with the system reaching certain values.
                 self.show(str(e))
@@ -213,7 +268,7 @@ class AdrController():
             
 ### Regenerate Thread and Methods ###
             
-    def request_regenerate(self,pid_setpoint_goal=2.5, peak_current=1.0, ramp_rate_up=-0.05, ramp_rate_down=0.05, pid_step=0.001, pause_time=0.5, dwell_time=0.5):
+    def request_regenerate(self,pid_setpoint_goal=2.5, peak_current=1.0, ramp_rate_up=-0.005, ramp_rate_down=0.005, pid_step=0.001, pause_time=0.5, dwell_time=0.5):
     
         if self.state!='standby':
             self.show('To regenerate, the controller must be in standby mode.')
@@ -253,11 +308,13 @@ class AdrController():
         if self.quit_command_thread==True:
             self.show('Regenerate thread exited.')
             return
-        self.pause(pause_time)
+        '''self.pause(pause_time)
         if self.quit_command_thread==True:
             self.show('Regenerate thread exited.')
             return
-        self.request_regulate(pid_setpoint_goal,pid_step)
+        self.request_regulate(pid_setpoint_goal,pid_step)'''
+        # Regenerate is not included in regenerate right now.
+        self.show('Regenerate thread completed successfully.')
         return
                 
     def magup(self,peak_current,ramp_rate_up):
@@ -304,24 +361,26 @@ class AdrController():
         
 ### Ramping methods ###
         
-    def ramp_up(self,goal,rate=0.01):
+    def ramp_up(self,goal,rate=0.005):
         self.manual_output_now=self.data['pid_manual_out']
         # This is to make sure that we are ramping off of the correct manual output. If pid switches to manual, this will be redundant, but if we are already in manual mode it is not.
         
-        self.state='ramping_up'
-        self.client.set_state('ramping_up')
         self.ramp_step=rate*self.refresh_rate
         self.ramp_goal=goal
+        
+        self.state='ramping_up'
+        self.client.set_state('ramping_up')
         # rate should be in volts/second and refresh rate is the time between function loops.
         
             
-    def ramp_down(self,rate=0.01):
+    def ramp_down(self,rate=0.005):
         self.manual_output_now=self.data['pid_manual_out']
+        
+        self.ramp_step=rate*self.refresh_rate
+        self.ramp_goal=0
         
         self.state='ramping_down'
         self.client.set_state('ramping_down')
-        self.ramp_step=rate*self.refresh_rate
-        self.ramp_goal=0
             
     def request_manual_output_on(self):
         # Private method.
@@ -429,6 +488,8 @@ class AdrController():
         return True
             
     def request_regulate(self,pid_setpoint_goal,pid_step=0.001, ramp_up=0.01):
+    
+        self.request_user_input(message='Switch to Regulate.')
     
         self.pid_goal=pid_setpoint_goal
         self.pid_step=pid_step*self.refresh_rate

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Wed Mar 19 16:13:00 2014
+# Created: Thu Mar 20 17:53:37 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -427,11 +427,11 @@ class Ui_Form(object):
         self.label_30.setObjectName(_fromUtf8("label_30"))
         self.verticalLayout_14.addWidget(self.label_30)
         self.ramp_rate_up_value = QtGui.QDoubleSpinBox(self.tabWidgetPage2)
-        self.ramp_rate_up_value.setDecimals(3)
+        self.ramp_rate_up_value.setDecimals(4)
         self.ramp_rate_up_value.setMinimum(0.0)
-        self.ramp_rate_up_value.setMaximum(0.1)
-        self.ramp_rate_up_value.setSingleStep(0.001)
-        self.ramp_rate_up_value.setProperty("value", 0.01)
+        self.ramp_rate_up_value.setMaximum(0.01)
+        self.ramp_rate_up_value.setSingleStep(0.0001)
+        self.ramp_rate_up_value.setProperty("value", 0.005)
         self.ramp_rate_up_value.setObjectName(_fromUtf8("ramp_rate_up_value"))
         self.verticalLayout_14.addWidget(self.ramp_rate_up_value)
         self.label_31 = QtGui.QLabel(self.tabWidgetPage2)
@@ -439,11 +439,11 @@ class Ui_Form(object):
         self.label_31.setObjectName(_fromUtf8("label_31"))
         self.verticalLayout_14.addWidget(self.label_31)
         self.ramp_rate_down_value = QtGui.QDoubleSpinBox(self.tabWidgetPage2)
-        self.ramp_rate_down_value.setDecimals(3)
+        self.ramp_rate_down_value.setDecimals(4)
         self.ramp_rate_down_value.setMinimum(0.0)
-        self.ramp_rate_down_value.setMaximum(0.1)
-        self.ramp_rate_down_value.setSingleStep(0.001)
-        self.ramp_rate_down_value.setProperty("value", 0.01)
+        self.ramp_rate_down_value.setMaximum(0.01)
+        self.ramp_rate_down_value.setSingleStep(0.0001)
+        self.ramp_rate_down_value.setProperty("value", 0.005)
         self.ramp_rate_down_value.setObjectName(_fromUtf8("ramp_rate_down_value"))
         self.verticalLayout_14.addWidget(self.ramp_rate_down_value)
         self.gridLayout_8.addLayout(self.verticalLayout_14, 0, 0, 1, 1)
