@@ -273,6 +273,9 @@ class AdrController():
         if self.state!='standby':
             self.show('To regenerate, the controller must be in standby mode.')
             return
+        if self.manual_output_now!=0.0:
+            self.show('To regenerate, manual output must be zero.')
+            return
         self.quit_command_thread=False
         self.start_command_thread(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time)
         
@@ -505,6 +508,10 @@ class AdrController():
         #self.request_user_input(message='Switch to Regulate.')
         # This doesn't work because request_regulate gets called from the main thread, which means this function freezes everything else, including the method that raises the message box
         # and sets the user response=True
+        
+        if pid_setpoint_goal<self.data['bridge_temp_value']:
+            self.show('Regulate temperature is below current temperature. Must regulate at a temperature higher than temperature now.')
+            return
     
         self.pid_goal=pid_setpoint_goal
         self.pid_step=pid_step*self.refresh_rate

@@ -205,15 +205,17 @@ class PlotDialog(QDialog,gui.Ui_Form):
         msg_box.setModal(False)
         
         action_button=QPushButton('OK')
-        action_button.clicked.connect(self.respond_to_controller)
+        action_button.clicked.connect(lambda: self.respond_to_controller(msg))
         msg_box.addButton(action_button, QMessageBox.ActionRole)
         
         quit_button=QPushButton('Quit')
         quit_button.clicked.connect(self.respond_to_controller_and_exit)
         msg_box.addButton(quit_button, QMessageBox.ActionRole)
         
-        msg_box.setDefaultButton(quit_button)
-        # If enter is pressed, quit is selected automatically.
+        #msg_box.setFocusPolicy(Qt.NoFocus)
+        #msg_box.setDefaultButton(quit_button)
+        # If enter is pressed, quit is selected.
+        
         
         msg_box.exec_()
         
@@ -223,8 +225,10 @@ class PlotDialog(QDialog,gui.Ui_Form):
     def pass_to_logger(self, message):
         self.message_logger.log(message)
         
-    def respond_to_controller(self):
-        self.controller.gui_response=True
+    def respond_to_controller(self,message):
+        if message==self.controller.message_for_gui:
+        # Makes sure the user is responding to the correct message.
+            self.controller.gui_response=True
         
     def respond_to_controller_and_exit(self):
         self.controller.quit_command_thread=True
@@ -232,7 +236,6 @@ class PlotDialog(QDialog,gui.Ui_Form):
         
     def check_for_message(self):
         if self.controller.message_for_gui!=None:
-            'controller message found'
             self.raise_message_box(self.controller.message_for_gui)
                 
     def setupTimer2(self):
