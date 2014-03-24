@@ -42,7 +42,8 @@ class AdrController():
         
         self.loop_thread=None
         self.command_thread=None
-        self.quit_command_thread=False
+        self.regulate_thread=None
+        self.quit_thread=False
         self.start_loop_thread()
         
         
@@ -202,7 +203,7 @@ class AdrController():
                         if success==True:
                             self.manual_output_now=self.pid_max_output
                             self.state='standby'
-                            raise ValueError('Ramp up ended because pid manual output reached maximum of %f. State switched to standby.'%(self.pid_max_output))
+                            raise ValueError('Ramp down ended because pid manual output reached maximum of %f. State switched to standby.'%(self.pid_max_output))
                     
                 if self.state=="dwell":
                     if self.data['pid_manual_status']==1:
@@ -276,7 +277,7 @@ class AdrController():
         if self.manual_output_now!=0.0:
             self.show('To regenerate, manual output must be zero.')
             return
-        self.quit_command_thread=False
+        self.quit_thread=False
         self.start_command_thread(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time)
         
     def start_command_thread(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time):
@@ -292,43 +293,39 @@ class AdrController():
     def regenerate_loop(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time):
     
         self.magup(peak_current,ramp_rate_up)
-        if self.quit_command_thread==True:
+        if self.quit_thread==True:
             self.show('Regenerate thread exited.')
             return
         self.wait('dwell')
-        if self.quit_command_thread==True:
+        if self.quit_thread==True:
             self.show('Regenerate thread exited.')
             return
         self.dwell(dwell_time)
-        if self.quit_command_thread==True:
+        if self.quit_thread==True:
             self.show('Regenerate thread exited.')
             return
         self.demag(ramp_rate_down)
-        if self.quit_command_thread==True:
+        if self.quit_thread==True:
             self.show('Regenerate thread exited.')
             return
         self.wait('standby')
-        if self.quit_command_thread==True:
+        if self.quit_thread==True:
             self.show('Regenerate thread exited.')
             return
-        '''self.pause(pause_time)
-        if self.quit_command_thread==True:
-            self.show('Regenerate thread exited.')
-            return
-        self.request_regulate(pid_setpoint_goal,pid_step)'''
+        #self.pause(pause_time)
         # Regenerate is not included in regenerate right now.
         self.show('Regenerate thread completed successfully.')
         return
                 
     def magup(self,peak_current,ramp_rate_up):
         self.request_user_input(message='Switch to Mag Cycle.')
-        if self.quit_command_thread==True:
+        if self.quit_thread==True:
             self.show('Magup exited.')
             return
         time.sleep(0.5)
         # Make sure the popups don't come up so fast the user clicks both.
         self.request_user_input(message='Close heat switch.')
-        if self.quit_command_thread==True:
+        if self.quit_thread==True:
             self.show('Magup exited.')
             return
         self.ramp_up(peak_current,ramp_rate_up)
@@ -339,7 +336,7 @@ class AdrController():
         start=time.time()
         tic=time.time()
         while tic-start<dwell_time_in_seconds:
-            if self.quit_command_thread==True:
+            if self.quit_thread==True:
                 self.show('Dwell before ramp down exited.')
                 return
             time.sleep(0.01)
@@ -351,7 +348,7 @@ class AdrController():
         start=time.time()
         tic=time.time()
         while tic-start<pause_time_in_seconds:
-            if self.quit_command_thread==True:
+            if self.quit_thread==True:
                 self.show('Pause before regulation exited.')
                 return
             time.sleep(0.01)
@@ -360,14 +357,14 @@ class AdrController():
     def wait(self,signal):
         # Waits until the system has finished ramping up or down.
         while self.state != signal:
-            if self.quit_command_thread==True:
+            if self.quit_thread==True:
                 self.show('Wait for %s terminated'%(signal))
                 return
             time.sleep(0.01)
         
     def demag(self,ramp_rate_down):
         self.request_user_input(message='Open heat switch.')
-        if self.quit_command_thread==True:
+        if self.quit_thread==True:
         
         # Should probably handle this case. What to do? Still ramp down? That is exactly what this already does.
         
@@ -503,7 +500,7 @@ class AdrController():
         # Sets the internal variable to the data value.
         return True
             
-    def request_regulate(self,pid_setpoint_goal,pid_step=0.001, ramp_up=0.01):
+    '''def request_regulate(self,pid_setpoint_goal,pid_step=0.001, ramp_up=0.01):
     
         #self.request_user_input(message='Switch to Regulate.')
         # This doesn't work because request_regulate gets called from the main thread, which means this function freezes everything else, including the method that raises the message box
@@ -523,15 +520,64 @@ class AdrController():
         self.ramp_step=ramp_up*self.refresh_rate
         
         self.state='start_regulate'
+        self.client.set_state('regulate')'''
+        
+    def request_regulate(self,pid_setpoint_goal=2.5, ramp_rate_up=-0.005, pid_step=0.001):
+    
+        if self.state!='standby':
+            self.show('To regulate, the controller must be in standby mode.')
+            return
+        if self.manual_output_now!=0.0:
+            self.show('To regulate, manual output must be zero.')
+            return
+        if pid_setpoint_goal<self.data['bridge_temp_value']:
+            self.show('Regulate temperature is below current temperature. Must regulate at a temperature higher than temperature now.')
+            return
+        self.quit_regulate_thread=False
+        self.start_regulate_thread(pid_setpoint_goal, ramp_rate_up, pid_step)
+        
+    def start_regulate_thread(self,pid_setpoint_goal, ramp_rate_up, pid_step):
+        if self.regulate_thread:
+            if self.regulate_thread.is_alive():
+                self.show("loop already running")
+                return
+                
+        self.regulate_thread=threading.Thread(target=self.regulate_loop,args=(pid_setpoint_goal,ramp_rate_up, pid_step))
+        self.regulate_thread.daemon=True
+        self.regulate_thread.start()
+        
+        
+    def go_to_min_current(self,ramp_rate_up,peak_current=0.04):
+        self.request_user_input(message='Switch to Regulate.')
+        self.ramp_up(peak_current,ramp_rate_up)
+        
+    def start_regulate(self, pid_setpoint_goal, pid_step):
+        self.pid_setpoint_now=self.data['pid_setpoint']
+        self.manual_output_now=self.data['pid_manual_out']
+        self.pid_goal=pid_setpoint_goal
+        self.pid_step=pid_step*self.refresh_rate
+        self.state='start_regulate'
         self.client.set_state('regulate')
+        
+    def regulate_loop(self,pid_setpoint_goal,ramp_rate_up, pid_step):
+    
+        self.go_to_min_current(ramp_rate_up)
+        if self.quit_thread==True:
+            self.show('Regulate thread exited.')
+            return
+        self.wait('dwell')
+        # Same function from regenerate_loop
+        if self.quit_thread==True:
+            self.show('Regulate thread exited.')
+            return
+        self.start_regulate(pid_setpoint_goal,pid_step)
         
 
 ### Standby ###
         
     def request_standby(self,ramp_down=0.01):
-        if self.command_thread:
-            self.quit_command_thread=True
-            
+        if self.command_thread or self.regulate_thread:
+            self.quit_thread=True
         self.recent_current_values=[]
         # Resets the monitor list.
     

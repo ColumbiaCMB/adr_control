@@ -193,7 +193,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         setpoint=self.setpoint_value.value()
         step=self.pid_step_value.value()
         rru=self.ramp_rate_up_value.value()
-        self.controller.request_regulate(pid_setpoint_goal=setpoint,pid_step=step, ramp_up=rru)
+        self.controller.request_regulate(pid_setpoint_goal=setpoint,pid_step=step, ramp_rate_up=rru)
         
     def request_standby(self):
         rrd=self.ramp_rate_down_value.value()
@@ -206,16 +206,8 @@ class PlotDialog(QDialog,gui.Ui_Form):
         
         action_button=QPushButton('OK')
         action_button.clicked.connect(lambda: self.respond_to_controller(msg))
+        action_button.setFocusPolicy(Qt.NoFocus)
         msg_box.addButton(action_button, QMessageBox.ActionRole)
-        
-        quit_button=QPushButton('Quit')
-        quit_button.clicked.connect(self.respond_to_controller_and_exit)
-        msg_box.addButton(quit_button, QMessageBox.ActionRole)
-        
-        #msg_box.setFocusPolicy(Qt.NoFocus)
-        #msg_box.setDefaultButton(quit_button)
-        # If enter is pressed, quit is selected.
-        
         
         msg_box.exec_()
         
@@ -229,10 +221,6 @@ class PlotDialog(QDialog,gui.Ui_Form):
         if message==self.controller.message_for_gui:
         # Makes sure the user is responding to the correct message.
             self.controller.gui_response=True
-        
-    def respond_to_controller_and_exit(self):
-        self.controller.quit_command_thread=True
-        self.controller.gui_response=True
         
     def check_for_message(self):
         if self.controller.message_for_gui!=None:
