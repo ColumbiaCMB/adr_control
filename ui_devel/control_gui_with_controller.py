@@ -22,11 +22,6 @@ import Pyro4
 
 import sys
 
-#QMetaType.Q_DECLARE_METATYPE(QTextCursor)
-#QMetaType.qRegisterMetaType(QTextCursor)
-# Get this for both of these: AttributeError: type object 'QMetaType' has no attribute 'qRegisterMetaType'
-# even though documentation shows these.
-
 
 class PlotDialog(QDialog,gui.Ui_Form):
     # Connects GUI pieces to functions. Grabs data from sim900 and updates gui.
@@ -37,7 +32,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.cryomech=Pyro4.Proxy("PYRONAME:cryomechserver")
         self.controller=adr_controller.AdrController(client=self.sim900,gui_input=True,gui_message_display=self.pass_to_logger)
         self.data_logger=data_logger.DataFile()
-        self.message_logger=message_logger.MessageFile(method=self.display)
+        self.message_logger=message_logger.MessageFile(method=self.push_message)
         # Sets up sim900 pyro proxy, AdrController, and data_logger - which records data in a netcdf format.
         
         self.last_sim900_timestamp=0
@@ -48,7 +43,11 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.setupUi(self)
         self.setupLists()
         self.setupTimer()
+        # Timer for update
         self.setupTimer2()
+        # Timer for checking alerts from controller
+        self.setupTimer3()
+        # Timer for displaying queued messages from controller
         
         self.plot=Superplot(self)
         self.plotLayout.insertWidget(0,self.plot.canvas)
@@ -83,6 +82,8 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.pid_setpoint_list = []
         self.magnet_current_list=[]
         self.time_list=[]
+        self.message_queue=[]
+        # This is for queued messages to the message_value box.
         
     def update(self):
         sim900_data = self.sim900.fetch_dict()
@@ -179,6 +180,8 @@ class PlotDialog(QDialog,gui.Ui_Form):
     def plot_toggle2(self, command):
         self.plot.plot_toggle(command,1)
         
+### Methods that request actions from the controller. Connected to buttons. ###
+        
     def request_regenerate(self):
         setpoint=self.setpoint_value.value()
         current=self.peak_current_value.value()
@@ -199,6 +202,8 @@ class PlotDialog(QDialog,gui.Ui_Form):
         rrd=self.ramp_rate_down_value.value()
         self.controller.request_standby(ramp_down=rrd)
         
+### Methods that deal with the controller requesting user input. ###
+        
     def raise_message_box(self,msg):
         msg_box=QMessageBox()
         msg_box.setText(msg)
@@ -210,12 +215,6 @@ class PlotDialog(QDialog,gui.Ui_Form):
         msg_box.addButton(action_button, QMessageBox.ActionRole)
         
         msg_box.exec_()
-        
-    def display(self,message):
-        self.message_value.append(message)
-        
-    def pass_to_logger(self, message):
-        self.message_logger.log(message)
         
     def respond_to_controller(self,message):
         if message==self.controller.message_for_gui:
@@ -230,6 +229,29 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.timer2 = QTimer()
         self.timer2.timeout.connect(self.check_for_message)
         self.timer2.start(2000)
+        
+### Methods that deal with displaying messages from GUI (and logging them). ###
+        
+    def push_message(self,message):
+        # Pushes messages to the message_queue
+        self.message_queue.append(message)
+        
+    def display_message(self):
+        # Grabs the first value in the message_queue and displays it on message_value
+        if len(self.message_queue)>0:
+            msg=self.message_queue.pop(0)
+            self.message_value.append(msg)
+        
+    def setupTimer3(self):
+        # Causes the display message method to trigger every 300 ms
+        self.timer3=QTimer()
+        self.timer3.timeout.connect(self.display_message)
+        self.timer3.start(300)
+        
+    def pass_to_logger(self, message):
+        self.message_logger.log(message)
+        
+    
         
 def main():
     app = QApplication(sys.argv)

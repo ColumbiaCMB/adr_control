@@ -292,6 +292,7 @@ class AdrController():
         
     def regenerate_loop(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time):
     
+        self.show('Regenerate thread started successfully.')
         self.magup(peak_current,ramp_rate_up)
         if self.quit_thread==True:
             self.show('Regenerate thread exited.')
@@ -533,7 +534,7 @@ class AdrController():
         if pid_setpoint_goal<self.data['bridge_temp_value']:
             self.show('Regulate temperature is below current temperature. Must regulate at a temperature higher than temperature now.')
             return
-        self.quit_regulate_thread=False
+        self.quit_thread=False
         self.start_regulate_thread(pid_setpoint_goal, ramp_rate_up, pid_step)
         
     def start_regulate_thread(self,pid_setpoint_goal, ramp_rate_up, pid_step):
@@ -560,7 +561,7 @@ class AdrController():
         self.client.set_state('regulate')
         
     def regulate_loop(self,pid_setpoint_goal,ramp_rate_up, pid_step):
-    
+        self.show('Regulate thread started successfully.')
         self.go_to_min_current(ramp_rate_up)
         if self.quit_thread==True:
             self.show('Regulate thread exited.')
@@ -576,6 +577,7 @@ class AdrController():
 ### Standby ###
         
     def request_standby(self,ramp_down=0.01):
+        self.show('Standby requested.')
         if self.command_thread or self.regulate_thread:
             self.quit_thread=True
         self.recent_current_values=[]
