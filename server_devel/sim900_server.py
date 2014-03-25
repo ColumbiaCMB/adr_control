@@ -263,6 +263,14 @@ class sim900Server():
         
 ### Stub sending functions
 
+    def set_ramp_on(self, ramp_on):
+        msg='RAMP %d'%(ramp_on)
+        return self.send(3,msg)
+
+    def set_ramp_rate(self,ramp_rate):
+        msg='RATE %f'%(ramp_rate)
+        return self.send(3,msg)
+
     def set_pid_setpoint(self, setpoint):
         msg='SETP %f'%(setpoint)
         return self.send(3,msg)

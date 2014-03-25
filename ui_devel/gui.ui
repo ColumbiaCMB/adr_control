@@ -77,7 +77,17 @@
          </item>
          <item>
           <property name="text">
+           <string>Magnet Voltage</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>PID Setpoint</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>PID Setpoint Input Monitor</string>
           </property>
          </item>
          <item>
@@ -104,7 +114,17 @@
          </item>
          <item>
           <property name="text">
+           <string>Magnet Voltage</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>PID Setpoint</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>PID Setpoint Input Monitor</string>
           </property>
          </item>
          <item>
@@ -237,15 +257,15 @@
             <enum>QLayout::SetMinimumSize</enum>
            </property>
            <property name="leftMargin">
-            <number>5</number>
+            <number>0</number>
            </property>
            <property name="rightMargin">
-            <number>5</number>
+            <number>0</number>
            </property>
            <item>
             <widget class="QLabel" name="label_9">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -271,7 +291,7 @@
            <item>
             <widget class="QLabel" name="label_10">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -297,7 +317,7 @@
            <item>
             <widget class="QLabel" name="label_11">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -322,7 +342,7 @@
            </item>
           </layout>
          </item>
-         <item row="0" column="7">
+         <item row="0" column="9">
           <spacer name="horizontalSpacer_3">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -434,57 +454,17 @@
             <number>0</number>
            </property>
            <property name="leftMargin">
-            <number>5</number>
+            <number>0</number>
            </property>
            <property name="topMargin">
-            <number>0</number>
+            <number>15</number>
            </property>
            <property name="rightMargin">
-            <number>5</number>
-           </property>
-           <property name="bottomMargin">
             <number>0</number>
            </property>
-           <item>
-            <widget class="QLabel" name="label_7">
-             <property name="text">
-              <string>Pid Setpoint</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="pid_setpoint_value">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="readOnly">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_8">
-             <property name="text">
-              <string>Pid Mode</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="pid_mode_value">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="readOnly">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
+           <property name="bottomMargin">
+            <number>15</number>
+           </property>
            <item>
             <widget class="QLabel" name="label_6">
              <property name="text">
@@ -527,7 +507,7 @@
            </item>
           </layout>
          </item>
-         <item row="0" column="6">
+         <item row="0" column="8">
           <layout class="QVBoxLayout" name="verticalLayout">
            <property name="spacing">
             <number>0</number>
@@ -536,13 +516,13 @@
             <number>5</number>
            </property>
            <property name="topMargin">
-            <number>10</number>
+            <number>15</number>
            </property>
            <property name="rightMargin">
             <number>5</number>
            </property>
            <property name="bottomMargin">
-            <number>10</number>
+            <number>15</number>
            </property>
            <item>
             <widget class="QLabel" name="label_17">
@@ -565,20 +545,14 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="label_18">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
+            <widget class="QLabel" name="label_8">
              <property name="text">
-              <string>Flag</string>
+              <string>Pid Mode</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QLineEdit" name="flag_value">
+            <widget class="QLineEdit" name="pid_mode_value">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                <horstretch>0</horstretch>
@@ -592,19 +566,22 @@
            </item>
           </layout>
          </item>
-         <item row="0" column="5">
+         <item row="0" column="7">
           <layout class="QVBoxLayout" name="verticalLayout_10">
+           <property name="spacing">
+            <number>0</number>
+           </property>
            <property name="leftMargin">
             <number>0</number>
            </property>
            <property name="topMargin">
-            <number>10</number>
+            <number>15</number>
            </property>
            <property name="rightMargin">
             <number>0</number>
            </property>
            <property name="bottomMargin">
-            <number>10</number>
+            <number>15</number>
            </property>
            <item>
             <widget class="QLabel" name="label">
@@ -620,6 +597,9 @@
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="readOnly">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -687,6 +667,121 @@
              </property>
              <property name="value">
               <double>1.450000000000000</double>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="0" column="6">
+          <layout class="QVBoxLayout" name="verticalLayout_16">
+           <property name="spacing">
+            <number>0</number>
+           </property>
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>15</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>15</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="label_14">
+             <property name="text">
+              <string>Ramping</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="pid_ramp_on_value">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_15">
+             <property name="text">
+              <string>Ramping Status</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="pid_ramp_status_value">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="0" column="5">
+          <layout class="QVBoxLayout" name="verticalLayout_17">
+           <property name="spacing">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>15</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>15</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="label_7">
+             <property name="text">
+              <string>Pid Setpoint</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="pid_setpoint_value">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_16">
+             <property name="text">
+              <string>Pid Setpoint Input Monitor</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="pid_setpoint_input_monitor_value">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="readOnly">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -784,19 +879,19 @@
            <item>
             <widget class="QDoubleSpinBox" name="ramp_rate_up_value">
              <property name="decimals">
-              <number>4</number>
+              <number>3</number>
              </property>
              <property name="minimum">
               <double>0.000000000000000</double>
              </property>
              <property name="maximum">
-              <double>0.010000000000000</double>
+              <double>0.020000000000000</double>
              </property>
              <property name="singleStep">
-              <double>0.000100000000000</double>
+              <double>0.001000000000000</double>
              </property>
              <property name="value">
-              <double>0.005000000000000</double>
+              <double>0.010000000000000</double>
              </property>
             </widget>
            </item>
@@ -810,16 +905,16 @@
            <item>
             <widget class="QDoubleSpinBox" name="ramp_rate_down_value">
              <property name="decimals">
-              <number>4</number>
+              <number>3</number>
              </property>
              <property name="minimum">
               <double>0.000000000000000</double>
              </property>
              <property name="maximum">
-              <double>0.010000000000000</double>
+              <double>0.020000000000000</double>
              </property>
              <property name="singleStep">
-              <double>0.000100000000000</double>
+              <double>0.001000000000000</double>
              </property>
              <property name="value">
               <double>0.005000000000000</double>

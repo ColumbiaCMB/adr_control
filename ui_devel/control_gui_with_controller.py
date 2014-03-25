@@ -80,7 +80,9 @@ class PlotDialog(QDialog,gui.Ui_Form):
         #Create lists in which bridge-temperature and bridge-setpoint values will be stored
         self.temp_list = []
         self.pid_setpoint_list = []
+        self.pid_setpoint_input_monitor_list=[]
         self.magnet_current_list=[]
+        self.magnet_voltage_list=[]
         self.time_list=[]
         self.message_queue=[]
         # This is for queued messages to the message_value box.
@@ -121,11 +123,27 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.pid_output_value.setText(str(sim900_data['pid_output_mon']))
         pid_setpoint = sim900_data['pid_setpoint']
         self.pid_setpoint_value.setText(str(pid_setpoint))
+        self.pid_setpoint_input_monitor_value.setText(str(sim900_data['pid_setpoint_mon']))
         self.pid_manual_output_value.setText(str(sim900_data['pid_manual_out']))
         if sim900_data['pid_manual_status'] == 1:
             self.pid_mode_value.setText('PID')
         if sim900_data['pid_manual_status'] == 0:
             self.pid_mode_value.setText('MAN')
+            
+        if sim900_data['pid_ramp_on'] == 1:
+            self.pid_ramp_on_value.setText('ON')
+        if sim900_data['pid_ramp_on'] == 0:
+            self.pid_ramp_on_value.setText('OFF')
+            
+        if sim900_data['pid_ramp_status'] == 0:
+            self.pid_ramp_status_value.setText('IDLE')
+        if sim900_data['pid_ramp_status'] == 1:
+            self.pid_ramp_status_value.setText('PENDING')
+        if sim900_data['pid_ramp_status'] == 2:
+            self.pid_ramp_status_value.setText('RAMPING')
+        if sim900_data['pid_ramp_status'] == 3:
+            self.pid_ramp_status_value.setText('PAUSED')
+        
             
         self.state_value.setText(self.controller.state)
         
@@ -150,11 +168,23 @@ class PlotDialog(QDialog,gui.Ui_Form):
             del self.pid_setpoint_list[0]
             self.pid_setpoint_list.append(pid_setpoint)
             
+        if len(self.pid_setpoint_input_monitor_list) < 500:
+            self.pid_setpoint_input_monitor_list.append(sim900_data['pid_setpoint_mon'])
+        elif len(self.pid_setpoint_input_monitor_list) >= 500:
+            del self.pid_setpoint_input_monitor_list[0]
+            self.pid_setpoint_input_monitor_list.append(sim900_data['pid_setpoint_mon'])
+            
         if len(self.magnet_current_list) < 500:
             self.magnet_current_list.append(current)
         elif len(self.magnet_current_list) >= 500:
             del self.magnet_current_list[0]
             self.magnet_current_list.append(current)
+            
+        if len(self.magnet_voltage_list) < 500:
+            self.magnet_voltage_list.append(voltage)
+        elif len(self.magnet_voltage_list) >= 500:
+            del self.magnet_voltage_list[0]
+            self.magnet_voltage_list.append(voltage)
             
         if len(self.time_list) < 500:
             self.time_list.append(sim900_data["time"])
@@ -173,6 +203,11 @@ class PlotDialog(QDialog,gui.Ui_Form):
         else:
             self.plot.autoscale_y=False
         self.plot.draw()
+        
+        
+    def plot_toggle(self, command, idx):
+        self.plot.plot_toggle(command,idx)
+        
         
     def plot_toggle1(self, command):
         # Calls the plot_toggle method of the superplot with the correct command and index.

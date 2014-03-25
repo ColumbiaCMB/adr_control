@@ -59,5 +59,9 @@ class Superplot():
             self.current_list[index]=self.parent.temp_list
         elif command=="Magnet Current":
             self.current_list[index]=self.parent.magnet_current_list
+        elif command=="Magnet Voltage":
+            self.current_list[index]=self.parent.magnet_voltage_list
         elif command=="PID Setpoint":
             self.current_list[index]=self.parent.pid_setpoint_list
+        elif command=="PID Setpoint Input Monitor":
+            self.current_list[index]=self.parent.pid_setpoint_input_monitor_list
