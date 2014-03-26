@@ -24,9 +24,7 @@ class AdrController():
         self.pid_setpoint_now=self.data['pid_setpoint']
         # parameters to keep track of the state of the system
         
-        self.pid_max_output=0.0
-        self.pid_min_output=-7.0
-        # Limits to the pid_manual_output
+        self.setup_constants()
         
         self.recent_current_values = []
         # Use to determine whether to ramp down after regulate.
@@ -45,6 +43,12 @@ class AdrController():
         self.quit_thread=False
         self.start_loop_thread()
         
+    def setup_constants(self):
+        self.pid_max_output=0.0
+        self.pid_min_output=-7.0
+        # Limits to the pid_manual_output
+        
+        # Set up mag gain and reg gain here too.
         
 ### Loop thread and function loop ###
         
@@ -148,6 +152,10 @@ class AdrController():
                                 continue
                             # Holds the output constant until the overload is fixed.
                         
+                if self.state=='starting_ramp':
+                    # Ramp is in the process of being called. This state makes sure dwell and standby don't try to toggle something while self.ramp is running.
+                    pass
+                        
                 if self.state=='ramping_up':
                     # Make sure the limits haven't been reached.
                     # Make sure current stays within acceptable bounds.
@@ -155,7 +163,7 @@ class AdrController():
                     
                     # if goal reached, switch states to either dwell or standby.
                     # if max pid output reached, do the same.
-                    if self.data['dvm_volts1']>=self.ramp_goal-0.001:
+                    if self.data['dvm_volts1']>=self.ramp_goal-0.004:
                         self.state='dwell'
                         raise ValueError('Ramp up goal of %f reached. State switched to dwell.'%(self.ramp_goal))
                     if self.data['dvm_volts1']>=9.4:
@@ -163,10 +171,10 @@ class AdrController():
                         raise ValueError('Magnet current is at max. State has been set to dwell.')
                     if self.data['pid_output_mon']<=self.pid_min_output:
                         self.state='dwell'
-                        raise ValueError('Ramp up ended because pid manual output reached minimum of %f. State switched to dwell.'%(self.pid_min_output))
+                        raise ValueError('Ramp up ended because pid output reached minimum of %f. State switched to dwell.'%(self.pid_min_output))
                         
                 if self.state=='ramping_down':
-                    if self.data['dvm_volts1']<=self.ramp_goal+0.001:
+                    if self.data['dvm_volts1']<=self.ramp_goal+0.004:
                         self.state='standby'
                         raise ValueError('Ramp down goal of %f reached. State switched to standby.'%(self.ramp_goal))
                     if self.data['dvm_volts1']<=0.0:
@@ -174,7 +182,7 @@ class AdrController():
                         raise ValueError('Magnet current is at min. State has been set to standby.')
                     if self.data['pid_output_mon']>=self.pid_max_output:
                         self.state='standby'
-                        raise ValueError('Ramp down ended because pid manual output reached maximum of %f. State switched to standby.'%(self.pid_min_output))
+                        raise ValueError('Ramp down ended because pid output reached maximum of %f. State switched to standby.'%(self.pid_max_output))
                         
                         
                         
@@ -365,6 +373,9 @@ class AdrController():
     def ramp(self,goal,rate):
         # Returns true if everything works, false if there is an error.
         # Switch BNC on measure from bridge to current.
+
+        self.state='starting ramp'
+        # Generic state that doesn't do anything to prevent collisions with standby or dwell states.
         
         self.data=self.client.fetch_dict()
         if self.data['pid_manual_status']==1:

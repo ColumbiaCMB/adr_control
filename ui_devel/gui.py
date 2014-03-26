@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Tue Mar 25 16:19:05 2014
+# Created: Wed Mar 26 11:01:54 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -86,7 +86,7 @@ class Ui_Form(object):
         self.autoscale_y.setObjectName(_fromUtf8("autoscale_y"))
         self.verticalLayout_7.addWidget(self.autoscale_y)
         self.gridLayout_3.addLayout(self.verticalLayout_7, 0, 0, 1, 1)
-        self.gridLayout.addLayout(self.gridLayout_3, 1, 0, 1, 1)
+        self.gridLayout.addLayout(self.gridLayout_3, 2, 0, 1, 1)
         self.tabWidget = QtGui.QTabWidget(Form)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -628,6 +628,12 @@ class Ui_Form(object):
         self.gridLayout_7.addLayout(self.gridLayout_6, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab_2, _fromUtf8(""))
         self.gridLayout.addWidget(self.tabWidget, 0, 0, 1, 1)
+        self.controller_toggle = QtGui.QCheckBox(Form)
+        self.controller_toggle.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.controller_toggle.setText(QtGui.QApplication.translate("Form", "Controller Toggle", None, QtGui.QApplication.UnicodeUTF8))
+        self.controller_toggle.setChecked(True)
+        self.controller_toggle.setObjectName(_fromUtf8("controller_toggle"))
+        self.gridLayout.addWidget(self.controller_toggle, 3, 0, 1, 1)
 
         self.retranslateUi(Form)
         self.plotoptions.setCurrentIndex(0)
