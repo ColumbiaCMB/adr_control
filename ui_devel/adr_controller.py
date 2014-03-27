@@ -6,7 +6,7 @@ import Pyro4
 
 
 class AdrController():
-    def __init__(self,client,gui_input=False,gui_message_display=None,startup_state="standby"):
+    def __init__(self,client,gui_input=False,gui_message_display=None,startup_state="standby",loop=True):
         self.exit=False
         self.state=startup_state
         # Sets the current state. Standby by default.
@@ -41,7 +41,8 @@ class AdrController():
         self.command_thread=None
         self.regulate_thread=None
         self.quit_thread=False
-        self.start_loop_thread()
+        if loop==True:
+            self.start_loop_thread()
         
     def setup_constants(self):
         self.pid_max_output=0.0
@@ -84,22 +85,6 @@ class AdrController():
                     # Temperature check.
                     self.show('Temperature too high, ramping current to zero.')
                     self.ramp_down()
-                
-                if self.state=='start_regulate':
-                    # Ramps to a minimum regulate current.
-                    if self.data['dvm_volts1']>0.04:
-                        self.state='regulate'
-                    else:
-                        if self.data['pid_manual_status']==1:
-                            success=self.request_manual_output_on()
-                            if success==False:
-                                continue
-                        
-                        success=self.client.set_manual_output(self.manual_output_now-self.ramp_step)
-                        # Ramp step is set in request_regulate
-                        if success==True:
-                            self.manual_output_now-=self.ramp_step
-                        
                 
                 if self.state=='regulate':
                 
@@ -153,6 +138,9 @@ class AdrController():
                             # Holds the output constant until the overload is fixed.
                         
                 if self.state=='starting_ramp':
+                    # Ramp is in the process of being called. This state makes sure dwell and standby don't try to toggle something while self.ramp is running.
+                    pass
+                if self.state=='starting_regulate':
                     # Ramp is in the process of being called. This state makes sure dwell and standby don't try to toggle something while self.ramp is running.
                     pass
                         
@@ -370,15 +358,34 @@ class AdrController():
         
 ### Ramping methods ###
 
+    def set_and_verify_setpoint(self,setpoint):
+        self.client.set_pid_setpoint(setpoint)
+        result=self.client.query_pid_setpoint()
+        if result!=setpoint:
+            self.show('Result of setpoint query was %f'%(result))
+            self.set_and_verify_setpoint(setpoint)
+        
+    def set_and_verify_ramp(self,ramp_on):
+        self.client.set_ramp_on(ramp_on)
+        result=self.client.query_pid_ramp_on()
+        if not isinstance(result,float):
+            self.show('Result of ramp query was %b'%(result))
+            self.set_and_verify_ramp(ramp_on)
+        if result!=ramp_on:
+            self.show('Result of ramp query was %f'%(result))
+            self.set_and_verify_ramp(ramp_on)
+
     def ramp(self,goal,rate):
         # Returns true if everything works, false if there is an error.
         # Switch BNC on measure from bridge to current.
 
-        self.state='starting ramp'
+        self.state='starting_ramp'
         # Generic state that doesn't do anything to prevent collisions with standby or dwell states.
         
-        self.data=self.client.fetch_dict()
-        if self.data['pid_manual_status']==1:
+        
+        
+        
+        '''if self.data['pid_manual_status']==1:
             success=self.request_manual_output_on()
             if success==False:
                 self.show('Setting manual_output_on in ramp method unsuccessful.')
@@ -388,7 +395,12 @@ class AdrController():
             if success==False:
                 self.show('Setting ramp status in ramp method unsuccessful.')
                 return False
-        # Turn ramp off.
+        # Turn ramp off.'''
+        # Old code
+        
+        self.request_manual_output_on()
+        self.set_and_verify_ramp(0)
+        # New code. Not sure why this works and the previous stuff doesn't.
         
         
         output_now=self.data['pid_measure_mon']
@@ -575,7 +587,7 @@ class AdrController():
             
 ### Regulate methods and threading ###
         
-    def request_regulate(self,pid_setpoint_goal=2.5, ramp_rate_up=-0.005, pid_step=0.001):
+    def request_regulate(self,pid_setpoint_goal=2.5, pid_ramp_rate=0.001):
     
         if self.state!='standby':
             self.show('To regulate, the controller must be in standby mode.')
@@ -587,24 +599,33 @@ class AdrController():
             self.show('Regulate temperature is below current temperature. Must regulate at a temperature higher than temperature now.')
             return
         self.quit_thread=False
-        self.start_regulate_thread(pid_setpoint_goal, ramp_rate_up, pid_step)
+        self.start_regulate_thread(pid_setpoint_goal, pid_ramp_rate)
         
-    def start_regulate_thread(self,pid_setpoint_goal, ramp_rate_up, pid_step):
+    def start_regulate_thread(self,pid_setpoint_goal,pid_ramp_rate):
         if self.regulate_thread:
             if self.regulate_thread.is_alive():
                 self.show("loop already running")
                 return
                 
-        self.regulate_thread=threading.Thread(target=self.regulate_loop,args=(pid_setpoint_goal,ramp_rate_up, pid_step))
+        self.regulate_thread=threading.Thread(target=self.regulate_loop,args=(pid_setpoint_goal,pid_ramp_rate))
         self.regulate_thread.daemon=True
         self.regulate_thread.start()
         
+    def raise_regulate_user_inputs(self):
+        self.request_user_input(message='Switch to regulate resistor.')
+        self.request_user_input(message='Switch to BNC PID input to bridge temperature.')
         
-    def go_to_min_current(self,ramp_rate_up,peak_current=0.04):
-        self.request_user_input(message='Switch to Regulate.')
-        self.ramp_up(peak_current,ramp_rate_up)
+    def regulate_loop(self,pid_setpoint,pid_ramp_rate):
+        self.raise_regulate_user_inputs()
+        self.start_regulate(pid_setpoint,pid_ramp_rate)
+        self.show('Regulate loop finished successfully')
         
-    def start_regulate(self, pid_setpoint_goal, pid_step):
+    def start_regulate(self,pid_setpoint,pid_ramp_rate):
+        self.ramp(pid_setpoint,pid_ramp_rate)
+        self.state='regulate test'
+        
+    
+    def old_start_regulate(self, pid_setpoint_goal, pid_step):
         self.pid_setpoint_now=self.data['pid_setpoint']
         self.manual_output_now=self.data['pid_manual_out']
         self.pid_goal=pid_setpoint_goal
@@ -612,7 +633,11 @@ class AdrController():
         self.state='start_regulate'
         self.client.set_state('regulate')
         
-    def regulate_loop(self,pid_setpoint_goal,ramp_rate_up, pid_step):
+    def old_go_to_min_current(self,ramp_rate_up,peak_current=0.04):
+        self.request_user_input(message='Switch to Regulate.')
+        self.ramp_up(peak_current,ramp_rate_up)
+        
+    def old_regulate_loop(self,pid_setpoint_goal,ramp_rate_up, pid_step):
         self.show('Regulate thread started successfully.')
         self.go_to_min_current(ramp_rate_up)
         if self.quit_thread==True:

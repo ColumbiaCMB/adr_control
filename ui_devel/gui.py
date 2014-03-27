@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Wed Mar 26 11:01:54 2014
+# Created: Thu Mar 27 12:03:52 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -628,12 +628,27 @@ class Ui_Form(object):
         self.gridLayout_7.addLayout(self.gridLayout_6, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab_2, _fromUtf8(""))
         self.gridLayout.addWidget(self.tabWidget, 0, 0, 1, 1)
-        self.controller_toggle = QtGui.QCheckBox(Form)
-        self.controller_toggle.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.controller_toggle.setText(QtGui.QApplication.translate("Form", "Controller Toggle", None, QtGui.QApplication.UnicodeUTF8))
-        self.controller_toggle.setChecked(True)
-        self.controller_toggle.setObjectName(_fromUtf8("controller_toggle"))
-        self.gridLayout.addWidget(self.controller_toggle, 3, 0, 1, 1)
+        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.horizontalLayout.setContentsMargins(-1, 5, -1, 5)
+        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
+        self.toggle_controller_button = QtGui.QPushButton(Form)
+        self.toggle_controller_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.toggle_controller_button.setText(QtGui.QApplication.translate("Form", "Toggle Controller", None, QtGui.QApplication.UnicodeUTF8))
+        self.toggle_controller_button.setObjectName(_fromUtf8("toggle_controller_button"))
+        self.horizontalLayout.addWidget(self.toggle_controller_button)
+        self.controller_value = QtGui.QLineEdit(Form)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.controller_value.sizePolicy().hasHeightForWidth())
+        self.controller_value.setSizePolicy(sizePolicy)
+        self.controller_value.setText(QtGui.QApplication.translate("Form", "Controlled connected", None, QtGui.QApplication.UnicodeUTF8))
+        self.controller_value.setReadOnly(True)
+        self.controller_value.setObjectName(_fromUtf8("controller_value"))
+        self.horizontalLayout.addWidget(self.controller_value)
+        spacerItem6 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem6)
+        self.gridLayout.addLayout(self.horizontalLayout, 3, 0, 1, 1)
 
         self.retranslateUi(Form)
         self.plotoptions.setCurrentIndex(0)

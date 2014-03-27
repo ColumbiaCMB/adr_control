@@ -1187,17 +1187,53 @@
     </widget>
    </item>
    <item row="3" column="0">
-    <widget class="QCheckBox" name="controller_toggle">
-     <property name="focusPolicy">
-      <enum>Qt::NoFocus</enum>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="topMargin">
+      <number>5</number>
      </property>
-     <property name="text">
-      <string>Controller Toggle</string>
+     <property name="bottomMargin">
+      <number>5</number>
      </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
+     <item>
+      <widget class="QPushButton" name="toggle_controller_button">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="text">
+        <string>Toggle Controller</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="controller_value">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Controlled connected</string>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_6">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>

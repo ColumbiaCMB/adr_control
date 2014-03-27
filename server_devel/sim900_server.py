@@ -285,6 +285,17 @@ class sim900Server():
             except ValueError as e:
                 self.logger.warning(e)
                 return False
+                
+    def query_pid_ramp_on(self):
+        result=self.query_port(3,'RAMP?')
+        if result==False:
+            return False
+        else:
+            try:
+                return float(result)
+            except ValueError as e:
+                self.logger.warning(e)
+                return False
         
     def set_manual_output(self,manual_out):
         msg='MOUT %f'%(manual_out)

@@ -76,7 +76,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         QObject.connect(self.plotoptions,SIGNAL("activated(const QString&)"),self.plot_toggle1)
         QObject.connect(self.plotoptions2,SIGNAL("activated(const QString&)"),self.plot_toggle2)
         
-        self.controller_toggle.stateChanged.connect(self.toggle_controller)
+        self.toggle_controller_button.clicked.connect(self.toggle_controller)
         
     def setupLists(self):
         #Create lists in which bridge-temperature and bridge-setpoint values will be stored
@@ -146,9 +146,9 @@ class PlotDialog(QDialog,gui.Ui_Form):
         if sim900_data['pid_ramp_status'] == 3:
             self.pid_ramp_status_value.setText('PAUSED')
         
-        if self.controller:
+        if self.controller.loop_thread.is_alive():
             self.state_value.setText(self.controller.state)
-        if not self.controller:
+        if not self.controller.loop_thread.is_alive():
             self.state_value.setText('disconnected')
         
         # Cryomech values
@@ -223,39 +223,46 @@ class PlotDialog(QDialog,gui.Ui_Form):
 ### Methods that deal with connecting and disconnecting the controller. ###
 
     def toggle_controller(self):
-    
-        if self.controller:
-            if self.controller.command_thread:
-                if self.controller.command_thread.is_alive():
-                    print 'Regenerate thread is running in controller. Terminate it before disconnecting the controller.'
-                    self.controller_toggle.setChecked(True)
-                    return
-            if self.controller.regulate_thread:
-                if self.controller.regulate_thread.is_alive():
-                    print 'Regulate thread is running in controller. Terminate it before disconnecting the controller.'
-                    self.controller_toggle.setChecked(True)
-                    return
+        if self.controller.command_thread:
+            if self.controller.command_thread.is_alive():
+                print 'Regenerate thread is running in controller. Terminate it before disconnecting the controller.'
+                return
+        if self.controller.regulate_thread:
+            if self.controller.regulate_thread.is_alive():
+                print 'Regulate thread is running in controller. Terminate it before disconnecting the controller.'
+                return
+        if self.controller.loop_thread.is_alive():
             self.disconnect_controller()
-            self.controller_toggle.setChecked(False)
-        else:
+            return
+        if not self.controller.loop_thread.is_alive():
             self.connect_controller()
-            self.controller_toggle.setChecked(True)
-
+            return
+            
     def disconnect_controller(self):
-        self.controller=None
+        self.controller.exit=True
+        start=time.time()
+        while self.controller.loop_thread.is_alive():
+            tic=time.time()
+            if tic-start>5.0:
+                print 'Disconnect controller timed out.'
+                return
+            time.sleep(0.5)
         self.regenerate_button.setEnabled(False)
         self.regulate_button.setEnabled(False)
         self.stop_button.setEnabled(False)
-        self.timer2=None
-        self.timer3=None
+        self.controller_value.setText('Controller disconnected.')
+        self.timer2.stop()
+        self.timer3.stop()
     
     def connect_controller(self):
-        self.controller=adr_controller.AdrController(client=self.sim900,gui_input=True,gui_message_display=self.pass_to_logger)
+        self.controller.exit=False
+        self.controller.start_loop_thread()
         self.regenerate_button.setEnabled(True)
         self.regulate_button.setEnabled(True)
         self.stop_button.setEnabled(True)
-        self.setupTimer2()
-        self.setupTimer3()
+        self.controller_value.setText('Controller connected.')
+        self.timer2.start(2000)
+        self.timer3.start(300)
         
         
 ### Methods that request actions from the controller. Connected to buttons. ###
@@ -274,7 +281,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         setpoint=self.setpoint_value.value()
         step=self.pid_step_value.value()
         rru=self.ramp_rate_up_value.value()
-        self.controller.request_regulate(pid_setpoint_goal=setpoint,pid_step=step, ramp_rate_up=rru)
+        self.controller.request_regulate(pid_setpoint_goal=setpoint,pid_ramp_rate=step)
         
     def request_standby(self):
         rrd=self.ramp_rate_down_value.value()
