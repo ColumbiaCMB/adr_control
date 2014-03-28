@@ -65,7 +65,7 @@ def test_up_and_down():
     errors_up=0
     errors_down=0
     reset_pid()
-    while i<3:
+    while i<500:
         controller.ramp(ramp_goal,ramp_rate)
         result=sim900.query_pid_setpoint()
         if result!=ramp_goal:
