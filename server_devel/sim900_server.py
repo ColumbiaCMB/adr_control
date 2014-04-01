@@ -127,7 +127,7 @@ class sim900Server():
         # Creates filename based on timestamp (year,month,day,hr,min,sec,suffix)
         
         self.logger=logging.getLogger('sim900_logger')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
         self.formatter=logging.Formatter('%(asctime)s %(levelname)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
         self.file_handler=logging.FileHandler(filename=fn)
         self.file_handler.setLevel(logging.DEBUG)
@@ -218,7 +218,7 @@ class sim900Server():
             self.finished_data=self.data
             self.new_data_flag=True
             
-            self.logger.info("Total data loading took %f seconds" %(self.data['time']-start))
+            self.logger.debug("Total data loading took %f seconds" %(self.data['time']-start))
             self.logger.debug('self.flag_available is %s'%(str(self.flag_available)))
             
             if self.data['bridge_overload_status']>0:
@@ -246,6 +246,8 @@ class sim900Server():
         
     def set_state(self,state):
         self.state=state
+        log_msg='State set to %s'%(state)
+        self.logger.info(log_msg)
         
 ### Flag handling
     # These methods are used to coordinate with the controller.
@@ -347,6 +349,8 @@ class sim900Server():
         self.server_lock.acquire()
         try:
             self.send_direct(port,msg)
+            log_msg='Message %s sent to port %d'%(msg,port)
+            self.logger.info(log_msg)
             return True
         except Exception as e:
             self.logger.warning('Error encountered when sending message %s to port %d'%(msg,port))
@@ -369,6 +373,8 @@ class sim900Server():
         self.server_lock.acquire()
         try:
             result=self.query_port_direct(port,msg)
+            log_msg='Query %s sent to port %d. Response was %s'%(msg,port,result)
+            self.logger.info(log_msg)
             return result
         except Exception as e:
             self.logger.warning('Error encountered when sending message %s to port %d'%(msg,port))

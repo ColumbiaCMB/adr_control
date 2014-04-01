@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Thu Mar 27 12:03:52 2014
+# Created: Tue Apr  1 11:07:01 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -637,17 +637,27 @@ class Ui_Form(object):
         self.toggle_controller_button.setObjectName(_fromUtf8("toggle_controller_button"))
         self.horizontalLayout.addWidget(self.toggle_controller_button)
         self.controller_value = QtGui.QLineEdit(Form)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.controller_value.sizePolicy().hasHeightForWidth())
         self.controller_value.setSizePolicy(sizePolicy)
-        self.controller_value.setText(QtGui.QApplication.translate("Form", "Controlled connected", None, QtGui.QApplication.UnicodeUTF8))
+        self.controller_value.setText(QtGui.QApplication.translate("Form", "Controller connected", None, QtGui.QApplication.UnicodeUTF8))
         self.controller_value.setReadOnly(True)
         self.controller_value.setObjectName(_fromUtf8("controller_value"))
         self.horizontalLayout.addWidget(self.controller_value)
         spacerItem6 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem6)
+        self.clear_history_button = QtGui.QPushButton(Form)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.clear_history_button.sizePolicy().hasHeightForWidth())
+        self.clear_history_button.setSizePolicy(sizePolicy)
+        self.clear_history_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.clear_history_button.setText(QtGui.QApplication.translate("Form", "Clear History", None, QtGui.QApplication.UnicodeUTF8))
+        self.clear_history_button.setObjectName(_fromUtf8("clear_history_button"))
+        self.horizontalLayout.addWidget(self.clear_history_button)
         self.gridLayout.addLayout(self.horizontalLayout, 3, 0, 1, 1)
 
         self.retranslateUi(Form)

@@ -1207,13 +1207,13 @@
      <item>
       <widget class="QLineEdit" name="controller_value">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="text">
-        <string>Controlled connected</string>
+        <string>Controller connected</string>
        </property>
        <property name="readOnly">
         <bool>true</bool>
@@ -1232,6 +1232,22 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="clear_history_button">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="text">
+        <string>Clear History</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

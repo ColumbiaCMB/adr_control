@@ -26,15 +26,17 @@ class Superplot():
         self.line_list=[self.line1,self.line2]
         
         self.axes1=self.fig.add_subplot(211)
-        self.axes2=self.fig.add_subplot(212)
+        self.axes2=self.fig.add_subplot(212,sharex=self.axes1)
         self.axes_list=[self.axes1,self.axes2]
         
     def draw(self):
         for i in range(len(self.axes_list)):
-            x=self.parent.time_list
             y=self.current_list[i]
             if y==None:
                 continue
+            x=self.parent.time_list[-len(y):]
+            # Makes sure x and y are the same length and they match to the most recent values of time.
+            
             if self.line_list[i]:
                 self.line_list[i].set_xdata(x)
                 self.line_list[i].set_ydata(y)

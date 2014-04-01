@@ -30,9 +30,13 @@ class PlotDialog(QDialog,gui.Ui_Form):
         
         self.sim900=Pyro4.Proxy("PYRONAME:sim900server")
         self.cryomech=Pyro4.Proxy("PYRONAME:cryomechserver")
+        
+        self.message_queue=[]
+        self.message_logger=message_logger.MessageFile(method=self.push_message)
+        # This is for queued messages from the controller.
+        
         self.controller=adr_controller.AdrController(client=self.sim900,gui_input=True,gui_message_display=self.pass_to_logger)
         self.data_logger=data_logger.DataFile()
-        self.message_logger=message_logger.MessageFile(method=self.push_message)
         # Sets up sim900 pyro proxy, AdrController, and data_logger - which records data in a netcdf format.
         
         self.last_sim900_timestamp=0
@@ -42,6 +46,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.__app = qApp
         self.setupUi(self)
         self.setupLists()
+        self.active_lists=[self.temp_list,self.magnet_current_list]
         self.setupTimer()
         # Timer for update
         self.setupTimer2()
@@ -77,6 +82,20 @@ class PlotDialog(QDialog,gui.Ui_Form):
         QObject.connect(self.plotoptions2,SIGNAL("activated(const QString&)"),self.plot_toggle2)
         
         self.toggle_controller_button.clicked.connect(self.toggle_controller)
+        self.clear_history_button.clicked.connect(self.clear_history)
+        
+    def clear_history(self):
+        self.setupLists()
+        # Clears lists
+        command1=self.plotoptions.currentText()
+        command2=self.plotoptions2.currentText()
+        self.plot_toggle1(command1)
+        self.plot_toggle2(command2)
+        #self.plot.plot_toggle(0,command1)
+        #self.plot.plot_toggle(1,command2)
+        # Makes sure the plot is looking at the most recent lists.
+        # Note, why does the uncommented code above work, and the commented out code not work? They should call the same methods.
+        # Perhaps superplot can't look at the parent lists?
         
     def setupLists(self):
         #Create lists in which bridge-temperature and bridge-setpoint values will be stored
@@ -86,8 +105,6 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.magnet_current_list=[]
         self.magnet_voltage_list=[]
         self.time_list=[]
-        self.message_queue=[]
-        # This is for queued messages to the message_value box.
         
     def update(self):
         sim900_data = self.sim900.fetch_dict()
@@ -160,41 +177,49 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.avg_pressure_low_value.setText(str(cryomech_data['avg_pressure_low']))
         
         #Update Temperature and Setpoint Lists
-        if len(self.temp_list) < 500:
+        if len(self.temp_list) < 1000:
             self.temp_list.append(temp_bridge)
-        elif len(self.temp_list) >= 500:
-            del self.temp_list[0]
+        elif len(self.temp_list) >= 1000:
+            if not (self.active_lists[0]==self.temp_list or self.active_lists[1]==self.temp_list):
+            # Keeps the list length to 1000 if not an active list, lets it grow otherwise.
+                del self.temp_list[0]
             self.temp_list.append(temp_bridge)
 
-        if len(self.pid_setpoint_list) < 500:
+        if len(self.pid_setpoint_list) < 1000:
             self.pid_setpoint_list.append(pid_setpoint)
-        elif len(self.pid_setpoint_list) >= 500:
-            del self.pid_setpoint_list[0]
+        elif len(self.pid_setpoint_list) >= 1000:
+            if not (self.active_lists[0]==self.pid_setpoint_list or self.active_lists[1]==self.pid_setpoint_list):
+                del self.pid_setpoint_list[0]
             self.pid_setpoint_list.append(pid_setpoint)
             
-        if len(self.pid_setpoint_input_monitor_list) < 500:
+        if len(self.pid_setpoint_input_monitor_list) < 1000:
             self.pid_setpoint_input_monitor_list.append(sim900_data['pid_setpoint_mon'])
-        elif len(self.pid_setpoint_input_monitor_list) >= 500:
-            del self.pid_setpoint_input_monitor_list[0]
+        elif len(self.pid_setpoint_input_monitor_list) >= 1000:
+            if not (self.active_lists[0]==self.pid_setpoint_input_monitor_list or self.active_lists[1]==self.pid_setpoint_input_monitor_list):
+                del self.pid_setpoint_input_monitor_list[0]
             self.pid_setpoint_input_monitor_list.append(sim900_data['pid_setpoint_mon'])
             
-        if len(self.magnet_current_list) < 500:
+        if len(self.magnet_current_list) < 1000:
             self.magnet_current_list.append(current)
-        elif len(self.magnet_current_list) >= 500:
-            del self.magnet_current_list[0]
+        elif len(self.magnet_current_list) >= 1000:
+            if not (self.active_lists[0]==self.magnet_current_list or self.active_lists[1]==self.magnet_current_list):
+                del self.magnet_current_list[0]
             self.magnet_current_list.append(current)
             
-        if len(self.magnet_voltage_list) < 500:
+        if len(self.magnet_voltage_list) < 1000:
             self.magnet_voltage_list.append(voltage)
-        elif len(self.magnet_voltage_list) >= 500:
-            del self.magnet_voltage_list[0]
+        elif len(self.magnet_voltage_list) >= 1000:
+            if not (self.active_lists[0]==self.magnet_voltage_list or self.active_lists[1]==self.magnet_voltage_list):
+                del self.magnet_voltage_list[0]
             self.magnet_voltage_list.append(voltage)
             
-        if len(self.time_list) < 500:
-            self.time_list.append(sim900_data["time"])
-        elif len(self.time_list) >= 500:
-            del self.time_list[0]
-            self.time_list.append(sim900_data["time"])
+            
+        self.time_list.append(sim900_data["time"])
+        longer_active_list_length=max(len(self.active_lists[0]),len(self.active_lists[1]))
+        if len(self.time_list)>longer_active_list_length:
+            del self.time_list[:-longer_active_list_length]
+        # Keeps time to the same length as the longer active_list
+           
             
         #Update plots by calling the draw function.
         
@@ -208,15 +233,49 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.plot.autoscale_y=False
         self.plot.draw()
         
-        
-    def plot_toggle(self, command, idx):
-        self.plot.plot_toggle(command,idx)
-        
-        
     def plot_toggle1(self, command):
         # Calls the plot_toggle method of the superplot with the correct command and index.
+        old_active_list=self.active_lists[0]
+        
+        if command=="Bridge Temperature":
+            self.active_lists[0]=self.temp_list
+        elif command=="Magnet Current":
+            self.active_lists[0]=self.magnet_current_list
+        elif command=="Magnet Voltage":
+            self.active_lists[0]=self.magnet_voltage_list
+        elif command=="PID Setpoint":
+            self.active_lists[0]=self.pid_setpoint_list
+        elif command=="PID Setpoint Input Monitor":
+            self.active_lists[0]=self.pid_setpoint_input_monitor_list
+        # Resets the active list to the commanded list.
+        
+        if self.active_lists[0]!=old_active_list:
+            # If the active list has changed, shorten previous lists to 1000 entries.
+            del old_active_list[:-1000]
+            
+        
         self.plot.plot_toggle(command,0)
+        # Give the plot new instructions.
+        
     def plot_toggle2(self, command):
+        old_active_list=self.active_lists[1]
+    
+        if command=="Bridge Temperature":
+            self.active_lists[1]=self.temp_list
+        elif command=="Magnet Current":
+            self.active_lists[1]=self.magnet_current_list
+        elif command=="Magnet Voltage":
+            self.active_lists[1]=self.magnet_voltage_list
+        elif command=="PID Setpoint":
+            self.active_lists[1]=self.pid_setpoint_list
+        elif command=="PID Setpoint Input Monitor":
+            self.active_lists[1]=self.pid_setpoint_input_monitor_list
+        # Resets the active list to the commanded list.
+        
+        if self.active_lists[1]!=old_active_list:
+            # If the active list has changed, shorten previous lists to 1000 entries.
+            del old_active_list[:-1000]
+    
         self.plot.plot_toggle(command,1)
         
         
