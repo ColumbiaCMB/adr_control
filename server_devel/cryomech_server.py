@@ -85,6 +85,7 @@ class cryomechServer():
         self.file_handler.setLevel(logging.DEBUG)
         self.file_handler.setFormatter(self.formatter)
         self.logger.addHandler(self.file_handler)
+        self.logger.info('Logger started.')
         
     def start_loop_thread(self):
         if self.loop_thread:

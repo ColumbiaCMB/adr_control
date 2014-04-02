@@ -133,6 +133,7 @@ class sim900Server():
         self.file_handler.setLevel(logging.DEBUG)
         self.file_handler.setFormatter(self.formatter)
         self.logger.addHandler(self.file_handler)
+        self.logger.info('Logger started.')
         
         
     def start_loop_thread(self):
@@ -229,8 +230,12 @@ class sim900Server():
                     self.logger.warning('Correction in progress')
                     
                 else:
-                    if self.overload_wait<5:
-                        self.overload_wait+=1
+                    if self.overload_wait<15:
+                        # Weighs errors 8 and 16 much less than the other errors. These errors will often self-correct.
+                        if self.data['bridge_overload_status']==8.0 or self.data['bridge_overload_status']==16.0:
+                            self.overload_wait+=1
+                        else:
+                            self.overload_wait+=3
                     else:
                         self.logger.warning('Sending correction')
                         self.send(1,'AGAI ON')
@@ -268,6 +273,13 @@ class sim900Server():
     def set_ramp_on(self, ramp_on):
         msg='RAMP %d'%(ramp_on)
         return self.send(3,msg)
+        
+    def pause_ramp(self):
+        msg='STRT STOP'
+        return self.send(3,msg)
+    def unpause_ramp(self):
+        msg='STRT START'
+        return self.send(3,msg)
 
     def set_ramp_rate(self,ramp_rate):
         msg='RATE %f'%(ramp_rate)
@@ -298,6 +310,17 @@ class sim900Server():
             except ValueError as e:
                 self.logger.warning(e)
                 return False
+                
+    def query_pid_ramp_status(self):
+        result=self.query_port(3,'RMPS?')
+        if result==False:
+            return False
+        else:
+            try:
+                return int(result)
+            except ValueError as e:
+                self.logger.warning(e)
+                return False
         
     def set_manual_output(self,manual_out):
         msg='MOUT %f'%(manual_out)
@@ -317,6 +340,17 @@ class sim900Server():
     def set_pid_manual_status(self,manual_status):
         msg='AMAN %d'%(manual_status)
         return self.send(3,msg)
+        
+    def query_pid_manual_status(self):
+        result=self.query_port(3,'AMAN?')
+        if result==False:
+            return False
+        else:
+            try:
+                return int(result)
+            except ValueError as e:
+                self.logger.warning(e)
+                return False
         
 ### Manual sending functions    
         
