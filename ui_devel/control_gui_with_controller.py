@@ -143,6 +143,14 @@ class PlotDialog(QDialog,gui.Ui_Form):
         voltage = sim900_data['dvm_volts0']
         self.magnet_voltage_value.setText(str(voltage))
         
+        
+        if sim900_data['cryostat_pressure']>=1:
+            msg='%.2f'%(sim900_data['cryostat_pressure'])
+            self.cryo_pressure_value.setText(msg)
+        if sim900_data['cryostat_pressure']<1:
+            msg='%.2g'%(sim900_data['cryostat_pressure'])
+            self.cryo_pressure_value.setText(msg)
+        
         self.bridge_overload_status_value.setText(str(sim900_data['bridge_overload_status']))
         self.bridge_autorange_gain_value.setText(str(sim900_data['bridge_autorange_gain']))
         

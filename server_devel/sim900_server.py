@@ -215,6 +215,7 @@ class sim900Server():
                     self.server_lock.release()
                     self.go_to_mainframe()
                     
+            self.data['cryostat_pressure']=self.convert_torr(self.data['dvm_volts3'])
             self.data['time']=time.time()
             self.finished_data=self.data
             self.new_data_flag=True
@@ -240,6 +241,46 @@ class sim900Server():
                         self.logger.warning('Sending correction')
                         self.send(1,'AGAI ON')
                         self.overload_wait=0
+                    
+                    
+### Convert voltage to torr. ###
+
+    def convert_torr(self, x):
+        if x < 0.375:
+            torr = -1
+            
+        elif x >= 0.375 and x < 2.842:
+            a = -0.02585
+            b = 0.03767
+            c = 0.04563
+            d = 0.1151
+            e = -0.04158
+            f = 0.008737
+
+            torr = a + b*x + c*pow(x,2) + d*pow(x,3) + e*pow(x,4) + f*pow(x,5)
+
+        elif x >= 2.842 and x < 4.945:
+            a = 0.1031
+            b = -0.3986
+            c = -0.02322
+            d = 0.07438
+            e = 0.07229
+            f = -0.006866
+
+            torr = (a + c*x + e*pow(x,2))/(1 + b*x + d*pow(x,2) + f*pow(x,3))
+
+        elif x >= 4.945 and x < 5.659:
+            a = 100.624
+            b = -0.37679
+            c = -20.5623
+            d = 0.0348656
+
+            torr = (a + c*x)/(1 + b*x + d*pow(x,2))
+
+        if x >= 5.659:
+            torr = -2
+
+        return torr
                     
 # Simple getting functions
         
