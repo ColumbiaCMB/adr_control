@@ -47,7 +47,8 @@ class AdrController():
         self.pid_min_output=-7.0
         # Limits to the pid_manual_output
         
-        # Set up mag gain and reg gain here too.
+        self.mag_cycle_gain=-1.6
+        self.regulate_gain=-11.0
         
     def change_state(self,state):
         self.state=state
@@ -230,6 +231,10 @@ class AdrController():
                         if self.manual_output_now>0:
                             self.ramp_step=0.03*self.refresh_rate
                             new_output=self.manual_output_now-self.ramp_step
+                            if abs(self.data['dvm_volts0'])>0.15:
+                                # Makes sure the voltage doesn't go above 200 mV
+                                time.sleep(self.refresh_rate)
+                                continue
                             if new_output<=0:
                                 success=self.client.set_manual_output(new_output)
                                 if success==True:
@@ -241,6 +246,11 @@ class AdrController():
                             # Can't use ramp_up because it uses current.
                             self.ramp_step=0.03*self.refresh_rate
                             new_output=self.manual_output_now+self.ramp_step
+                            if abs(self.data['dvm_volts0'])>0.15:
+                                # Makes sure the voltage doesn't go above 200 mV
+                                self.show('Voltage too high to do another manual step down.')
+                                time.sleep(self.refresh_rate)
+                                continue
                             if new_output<=0:
                                 success=self.client.set_manual_output(new_output)
                                 if success==True:
@@ -273,7 +283,7 @@ class AdrController():
             
 ### Regenerate Thread and Methods ###
             
-    def request_regenerate(self,pid_setpoint_goal=2.5, peak_current=1.0, ramp_rate_up=-0.005, ramp_rate_down=0.005, pid_step=0.001, pause_time=0.5, dwell_time=0.5):
+    def request_regenerate(self,pid_setpoint_goal=2.5, peak_current=1.0, ramp_rate_up=-0.005, ramp_rate_down=0.005, dwell_time=0.5):
     
         if self.state!='standby':
             self.show('To regenerate, the controller must be in standby mode.')
@@ -285,21 +295,25 @@ class AdrController():
             self.show('Peak current must be below 9.4.')
             return
         self.quit_thread=False
-        self.start_command_thread(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time)
+        self.start_command_thread(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, dwell_time)
         
-    def start_command_thread(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time):
+    def start_command_thread(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, dwell_time):
         if self.command_thread:
             if self.command_thread.is_alive():
                 self.show("loop already running")
                 return
                 
-        self.command_thread=threading.Thread(target=self.regenerate_loop,args=(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time))
+        self.command_thread=threading.Thread(target=self.regenerate_loop,args=(pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, dwell_time))
         self.command_thread.daemon=True
         self.command_thread.start()
         
-    def regenerate_loop(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, pid_step, pause_time, dwell_time):
+    def regenerate_loop(self,pid_setpoint_goal,peak_current,ramp_rate_up, ramp_rate_down, dwell_time):
     
         self.show('Regenerate thread started successfully.')
+        self.set_gain(self.mag_cycle_gain)
+        if self.quit_thread==True:
+            self.show('Regenerate thread exited.')
+            return
         self.magup(peak_current,ramp_rate_up)
         if self.quit_thread==True:
             self.show('Regenerate thread exited.')
@@ -320,8 +334,6 @@ class AdrController():
         if self.quit_thread==True:
             self.show('Regenerate thread exited.')
             return
-        #self.pause(pause_time)
-        # Regenerate is not included in regenerate right now.
         self.show('Regenerate thread completed successfully.')
         return
                 
@@ -384,6 +396,26 @@ class AdrController():
             self.show('Demag exited.')
             return
         self.ramp_down(ramp_rate_down)
+        
+### Setting and checking gain. ###
+
+    def set_gain(self,gain):
+        gain_now=self.data['pid_propor_gain']
+        start=time.time()
+        while gain_now!=gain:
+            tic=time.time()
+            if tic-start>4.0:
+                break
+            success=self.client.set_pid_propor_gain(gain)
+            if success==False:
+                continue
+            gain_now=self.client.query_pid_propor_gain()
+        if gain_now!=gain:
+            self.show('Set gain failed.')
+            return False
+        self.show('Set gain at %f succeeded.'%(gain))
+        return True
+        
         
 ### Setting dwell. ###
 
@@ -703,9 +735,49 @@ class AdrController():
         self.show('Regulate loop finished successfully')
         
     def start_regulate(self,pid_setpoint,pid_ramp_rate):
+        self.set_gain(self.regulate_gain)
         self.ramp(pid_setpoint,pid_ramp_rate)
         self.regulate_start=time.time()
         self.change_state('regulate')
+        
+    def update_setpoint(self,setpoint):
+        if self.state!='regulate':
+            self.show('You cannot update the setpoint outside of regulate.')
+            return False
+        if self.data['pid_manual_status']!=1:
+            self.show('Manual control is on. Wait until PID control is back.')
+            return False
+        if self.data['pid_ramp_on']!=1:
+            self.show('Turning ramp on.')
+            success=self.set_and_verify_ramp(1)
+            if success==False:
+                self.show('Turning ramp on failed.')
+                return False
+        success=self.client.set_pid_setpoint(setpoint)
+        if success==False:
+            self.show('Updating setpoint unsuccessful.')
+            return False
+        # Set new setpoint
+        start=time.time()
+        difference=1
+        start=time.time()
+        while difference>0.1:
+            result=self.client.query_pid_setpoint()
+            if not isinstance(result,float):
+                success=False
+                break
+            difference=abs(result-setpoint)
+            tic=time.time()
+            if tic-start>3.0:
+                success=False
+                break
+        if success==False:
+            self.show('Setpoint goal command sent, but setpoint not changed. Likely reason is PID is in the process of ramping.')
+            return False
+        self.show('Setpoint update successfully.')
+        return True
+            
+        
 
 ### Standby ###
         
