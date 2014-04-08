@@ -67,3 +67,9 @@ class Superplot():
             self.current_list[index]=self.parent.pid_setpoint_list
         elif command=="PID Setpoint Input Monitor":
             self.current_list[index]=self.parent.pid_setpoint_input_monitor_list
+        elif command=='Magnet Diode Temperature':
+            self.current_list[index]=self.parent.magnet_diode_temp_list
+        elif command=='50K Stage Temperature':
+            self.current_list[index]=self.parent.fiftyk_stage_temp_list
+        elif command=='Floating Diode Temperature':
+            self.current_list[index]=self.parent.floating_diode_temp_list

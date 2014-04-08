@@ -351,6 +351,22 @@ class sim900Server():
             except ValueError as e:
                 self.logger.warning(e)
                 return False
+                
+    def set_pid_propor_gain(self,gain):
+        msg='GAIN %f'%(gain)
+        return self.send(3,msg)
+        
+    def query_pid_propor_gain(self):
+        result=self.query_port(3,'GAIN?')
+        if result==False:
+            return False
+        else:
+            try:
+                return float(result)
+            except ValueError as e:
+                self.logger.warning(e)
+                return False    
+    
         
 ### Manual sending functions    
         

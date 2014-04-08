@@ -92,6 +92,21 @@
          </item>
          <item>
           <property name="text">
+           <string>Magnet Diode Temperature</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>50K Stage Temperature</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Floating Diode Temperature</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>Stop Plotting</string>
           </property>
          </item>
@@ -125,6 +140,21 @@
          <item>
           <property name="text">
            <string>PID Setpoint Input Monitor</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Magnet Diode Temperature</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>50K Stage Temperature</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Floating Diode Temperature</string>
           </property>
          </item>
          <item>
@@ -631,15 +661,15 @@
             <number>0</number>
            </property>
            <property name="topMargin">
-            <number>45</number>
+            <number>15</number>
            </property>
            <property name="bottomMargin">
-            <number>45</number>
+            <number>15</number>
            </property>
            <item>
             <widget class="QLabel" name="label_2">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -667,6 +697,16 @@
              </property>
              <property name="value">
               <double>1.450000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="update_setpoint_button">
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="text">
+              <string>Update Setpoint</string>
              </property>
             </widget>
            </item>

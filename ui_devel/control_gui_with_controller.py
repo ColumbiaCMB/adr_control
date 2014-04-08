@@ -83,6 +83,8 @@ class PlotDialog(QDialog,gui.Ui_Form):
         
         self.toggle_controller_button.clicked.connect(self.toggle_controller)
         self.clear_history_button.clicked.connect(self.clear_history)
+        self.update_setpoint_button.clicked.connect(self.request_update_setpoint)
+        self.update_setpoint_button.setEnabled(False)
         
     def clear_history(self):
         self.setupLists()
@@ -104,6 +106,11 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.pid_setpoint_input_monitor_list=[]
         self.magnet_current_list=[]
         self.magnet_voltage_list=[]
+        
+        self.magnet_diode_temp_list=[]
+        self.fiftyk_stage_temp_list=[]
+        self.floating_diode_temp_list=[]
+        
         self.time_list=[]
         
     def update(self):
@@ -167,6 +174,12 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.state_value.setText(self.controller.state)
         if not self.controller.loop_thread.is_alive():
             self.state_value.setText('disconnected')
+        if self.update_setpoint_button.isEnabled():
+            if self.controller.state!='regulate':
+                self.update_setpoint_button.setEnabled(False)
+        if not self.update_setpoint_button.isEnabled():
+            if self.controller.state=='regulate':
+                self.update_setpoint_button.setEnabled(True)
         
         # Cryomech values
         self.temp_water_in_value.setText(str(cryomech_data['temp_water_in']))
@@ -213,6 +226,11 @@ class PlotDialog(QDialog,gui.Ui_Form):
                 del self.magnet_voltage_list[0]
             self.magnet_voltage_list.append(voltage)
             
+        self.update_list(self.magnet_diode_temp_list,sim900_data['therm_temperature1'])
+        self.update_list(self.fiftyk_stage_temp_list,sim900_data['therm_temperature0'])
+        self.update_list(self.floating_diode_temp_list,sim900_data['therm_temperature2'])
+        
+            
             
         self.time_list.append(sim900_data["time"])
         longer_active_list_length=max(len(self.active_lists[0]),len(self.active_lists[1]))
@@ -232,6 +250,14 @@ class PlotDialog(QDialog,gui.Ui_Form):
         else:
             self.plot.autoscale_y=False
         self.plot.draw()
+
+    def update_list(self,list_to_update, data):
+        if len(list_to_update) < 1000:
+            list_to_update.append(data)
+        elif len(self.magnet_voltage_list) >= 1000:
+            if not (self.active_lists[0]==list_to_update or self.active_lists[1]==list_to_update):
+                del list_to_update[0]
+            list_to_update.append(data)
         
     def plot_toggle1(self, command):
         # Calls the plot_toggle method of the superplot with the correct command and index.
@@ -247,7 +273,14 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.active_lists[0]=self.pid_setpoint_list
         elif command=="PID Setpoint Input Monitor":
             self.active_lists[0]=self.pid_setpoint_input_monitor_list
+        elif command=='Magnet Diode Temperature':
+            self.active_lists[0]=self.magnet_diode_temp_list
+        elif command=='50K Stage Temperature':
+            self.active_lists[0]=self.fiftyk_stage_temp_list
+        elif command=='Floating Diode Temperature':
+            self.active_lists[0]=self.floating_diode_temp_list
         # Resets the active list to the commanded list.
+        
         
         if self.active_lists[0]!=old_active_list:
             # If the active list has changed, shorten previous lists to 1000 entries.
@@ -270,6 +303,12 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.active_lists[1]=self.pid_setpoint_list
         elif command=="PID Setpoint Input Monitor":
             self.active_lists[1]=self.pid_setpoint_input_monitor_list
+        elif command=='Magnet Diode Temperature':
+            self.active_lists[1]=self.magnet_diode_temp_list
+        elif command=='50K Stage Temperature':
+            self.active_lists[1]=self.fiftyk_stage_temp_list
+        elif command=='Floating Diode Temperature':
+            self.active_lists[1]=self.floating_diode_temp_list
         # Resets the active list to the commanded list.
         
         if self.active_lists[1]!=old_active_list:
@@ -327,24 +366,113 @@ class PlotDialog(QDialog,gui.Ui_Form):
 ### Methods that request actions from the controller. Connected to buttons. ###
         
     def request_regenerate(self):
+    
+        if self.controller.state!='standby':
+            msg='To regenerate, the controller must be in standby mode.'
+            self.raise_error_box(msg)
+            return
+        if self.controller.manual_output_now!=0.0:
+            msg='To regenerate, manual output must be zero.'
+            self.raise_error_box(msg)
+            return
+    
         setpoint=self.setpoint_value.value()
         current=self.peak_current_value.value()
         rru=self.ramp_rate_up_value.value()
         rrd=self.ramp_rate_down_value.value()
-        step=self.pid_step_value.value()
         dwell=self.dwell_time_value.value()
-        pause=self.pause_time_value.value()
-        self.controller.request_regenerate(pid_setpoint_goal=setpoint,peak_current=current, ramp_rate_up=rru, ramp_rate_down=rrd, pid_step=step, pause_time=pause, dwell_time=dwell)
+    
+        msg='Prepared to regenerate.\nSettings are:\n\nSetpoint: %f\nPeak Current: %f\nRamp Rate Up: %f\nRamp Rate Down: %f\nDwell Time: %f\n\nPress OK to continue.'%(setpoint,current,rru,rrd,dwell)
+    
+        self.raise_verification_box(msg, self.send_regenerate_request)
+        
+    def send_regenerate_request(self):
+        setpoint=self.setpoint_value.value()
+        current=self.peak_current_value.value()
+        rru=self.ramp_rate_up_value.value()
+        rrd=self.ramp_rate_down_value.value()
+        dwell=self.dwell_time_value.value()
+        self.controller.request_regenerate(pid_setpoint_goal=setpoint,peak_current=current, ramp_rate_up=rru, ramp_rate_down=rrd, dwell_time=dwell)\
         
     def request_regulate(self):
+    
+        if self.controller.state!='standby':
+            msg='To regulate, the controller must be in standby mode.'
+            self.raise_error_box(msg)
+            return
+        if self.controller.manual_output_now!=0.0:
+            msg='To regulate, manual output must be zero.'
+            self.raise_error_box(msg)
+            return
+           
+        setpoint=self.setpoint_value.value() 
+        step=self.pid_step_value.value()
+            
+        if setpoint<self.controller.data['bridge_temp_value']:
+            msg='Regulate temperature is below current temperature. Must regulate at a temperature higher than temperature now.'
+            self.raise_error_box(msg)
+            return
+        
+        msg='Prepared to regulate.\nSettings are:\n\nSetpoint: %f\nPID Ramp Rate: %f\n\nPress OK to continue.'%(setpoint,step)
+    
+        self.raise_verification_box(msg, self.send_regulate_request)
+        
+    def send_regulate_request(self):
         setpoint=self.setpoint_value.value()
         step=self.pid_step_value.value()
-        rru=self.ramp_rate_up_value.value()
         self.controller.request_regulate(pid_setpoint_goal=setpoint,pid_ramp_rate=step)
         
     def request_standby(self):
         rrd=self.ramp_rate_down_value.value()
         self.controller.request_standby(ramp_down=rrd)
+        
+    def request_update_setpoint(self):
+    
+        if self.controller.data['pid_ramp_status']!=0:
+            msg='PID ramp status is not IDLE. Wait for current ramp to finish before updating setpoint.'
+            self.raise_error_box(msg)
+            return
+    
+        setpoint=self.setpoint_value.value()
+        msg='Prepared to update setpoint.\nSetpoint: %f\n\nPress OK to continue.'%(setpoint)
+    
+        self.raise_verification_box(msg, self.send_update_setpoint_request)
+    
+    def send_update_setpoint_request(self):
+        setpoint=self.setpoint_value.value()
+        self.controller.update_setpoint(setpoint)
+        
+    def raise_verification_box(self,msg,requested_method):
+        msg_box=QMessageBox()
+        msg_box.setText(msg)
+        msg_box.setModal(False)
+        
+        action_button=QPushButton('OK')
+        action_button.clicked.connect(requested_method)
+        action_button.setFocusPolicy(Qt.NoFocus)
+        msg_box.addButton(action_button, QMessageBox.ActionRole)
+        
+        reject_button=QPushButton('Cancel')
+        reject_button.clicked.connect(self.reject)
+        reject_button.setFocusPolicy(Qt.NoFocus)
+        msg_box.addButton(reject_button, QMessageBox.ActionRole)
+        
+        msg_box.exec_()
+        
+    def raise_error_box(self,msg):
+        msg_box=QMessageBox()
+        msg_box.setText(msg)
+        msg_box.setModal(False)
+        
+        action_button=QPushButton('OK')
+        action_button.clicked.connect(self.reject)
+        action_button.setFocusPolicy(Qt.NoFocus)
+        msg_box.addButton(action_button, QMessageBox.ActionRole)
+        
+        msg_box.exec_()
+        
+    def reject(self):
+        return
         
 ### Methods that deal with the controller requesting user input. ###
         

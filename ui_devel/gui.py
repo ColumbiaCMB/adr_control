@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Tue Apr  1 11:07:01 2014
+# Created: Tue Apr  8 16:15:09 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -49,7 +49,13 @@ class Ui_Form(object):
         self.plotoptions.addItem(_fromUtf8(""))
         self.plotoptions.setItemText(4, QtGui.QApplication.translate("Form", "PID Setpoint Input Monitor", None, QtGui.QApplication.UnicodeUTF8))
         self.plotoptions.addItem(_fromUtf8(""))
-        self.plotoptions.setItemText(5, QtGui.QApplication.translate("Form", "Stop Plotting", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions.setItemText(5, QtGui.QApplication.translate("Form", "Magnet Diode Temperature", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions.addItem(_fromUtf8(""))
+        self.plotoptions.setItemText(6, QtGui.QApplication.translate("Form", "50K Stage Temperature", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions.addItem(_fromUtf8(""))
+        self.plotoptions.setItemText(7, QtGui.QApplication.translate("Form", "Floating Diode Temperature", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions.addItem(_fromUtf8(""))
+        self.plotoptions.setItemText(8, QtGui.QApplication.translate("Form", "Stop Plotting", None, QtGui.QApplication.UnicodeUTF8))
         self.verticalLayout_9.addWidget(self.plotoptions)
         self.plotoptions2 = QtGui.QComboBox(Form)
         self.plotoptions2.setObjectName(_fromUtf8("plotoptions2"))
@@ -64,7 +70,13 @@ class Ui_Form(object):
         self.plotoptions2.addItem(_fromUtf8(""))
         self.plotoptions2.setItemText(4, QtGui.QApplication.translate("Form", "PID Setpoint Input Monitor", None, QtGui.QApplication.UnicodeUTF8))
         self.plotoptions2.addItem(_fromUtf8(""))
-        self.plotoptions2.setItemText(5, QtGui.QApplication.translate("Form", "Stop Plotting", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions2.setItemText(5, QtGui.QApplication.translate("Form", "Magnet Diode Temperature", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions2.addItem(_fromUtf8(""))
+        self.plotoptions2.setItemText(6, QtGui.QApplication.translate("Form", "50K Stage Temperature", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions2.addItem(_fromUtf8(""))
+        self.plotoptions2.setItemText(7, QtGui.QApplication.translate("Form", "Floating Diode Temperature", None, QtGui.QApplication.UnicodeUTF8))
+        self.plotoptions2.addItem(_fromUtf8(""))
+        self.plotoptions2.setItemText(8, QtGui.QApplication.translate("Form", "Stop Plotting", None, QtGui.QApplication.UnicodeUTF8))
         self.verticalLayout_9.addWidget(self.plotoptions2)
         self.gridLayout_3.addLayout(self.verticalLayout_9, 3, 0, 1, 1)
         self.navbar_layout = QtGui.QVBoxLayout()
@@ -337,10 +349,10 @@ class Ui_Form(object):
         self.gridLayout_2.addLayout(self.verticalLayout_10, 0, 7, 1, 1)
         self.verticalLayout_8 = QtGui.QVBoxLayout()
         self.verticalLayout_8.setSpacing(0)
-        self.verticalLayout_8.setContentsMargins(-1, 45, -1, 45)
+        self.verticalLayout_8.setContentsMargins(-1, 15, -1, 15)
         self.verticalLayout_8.setObjectName(_fromUtf8("verticalLayout_8"))
         self.label_2 = QtGui.QLabel(self.tabWidgetPage1)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Minimum)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_2.sizePolicy().hasHeightForWidth())
@@ -358,6 +370,11 @@ class Ui_Form(object):
         self.setpoint_value.setProperty("value", 1.45)
         self.setpoint_value.setObjectName(_fromUtf8("setpoint_value"))
         self.verticalLayout_8.addWidget(self.setpoint_value)
+        self.update_setpoint_button = QtGui.QPushButton(self.tabWidgetPage1)
+        self.update_setpoint_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.update_setpoint_button.setText(QtGui.QApplication.translate("Form", "Update Setpoint", None, QtGui.QApplication.UnicodeUTF8))
+        self.update_setpoint_button.setObjectName(_fromUtf8("update_setpoint_button"))
+        self.verticalLayout_8.addWidget(self.update_setpoint_button)
         self.gridLayout_2.addLayout(self.verticalLayout_8, 0, 1, 1, 1)
         self.verticalLayout_16 = QtGui.QVBoxLayout()
         self.verticalLayout_16.setSpacing(0)
