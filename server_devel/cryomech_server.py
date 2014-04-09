@@ -121,7 +121,7 @@ class cryomechServer():
                     result=self.smdp.destruct_answer(answer+'\r')
                     # fast_send_and_receive slices off the \r so we add it back in to get the correct amount of characters.
                     try:
-                        self.data[j['name']]=float(result)
+                        self.data[j['name']]=(float(result)/10.0)
                     except ValueError as e:
                         self.logger.warning('Value error in key %s. NaN inserted. Error printed below.'%(j['name']))
                         self.logger.warning(e)

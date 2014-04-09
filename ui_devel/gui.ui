@@ -1057,7 +1057,7 @@
       <layout class="QGridLayout" name="gridLayout_7">
        <item row="0" column="0">
         <layout class="QGridLayout" name="gridLayout_6">
-         <item row="0" column="3">
+         <item row="0" column="4">
           <spacer name="horizontalSpacer_4">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -1070,7 +1070,7 @@
            </property>
           </spacer>
          </item>
-         <item row="0" column="0">
+         <item row="0" column="1">
           <layout class="QVBoxLayout" name="verticalLayout_11">
            <property name="leftMargin">
             <number>5</number>
@@ -1120,7 +1120,7 @@
            </item>
           </layout>
          </item>
-         <item row="0" column="1">
+         <item row="0" column="2">
           <layout class="QVBoxLayout" name="verticalLayout_12">
            <property name="leftMargin">
             <number>5</number>
@@ -1170,7 +1170,7 @@
            </item>
           </layout>
          </item>
-         <item row="0" column="2">
+         <item row="0" column="3">
           <layout class="QVBoxLayout" name="verticalLayout_13">
            <property name="leftMargin">
             <number>5</number>
@@ -1212,6 +1212,51 @@
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="0" column="0">
+          <layout class="QVBoxLayout" name="verticalLayout_19">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>45</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>45</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="label_18">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Cryomech Status</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="comp_on_value">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
              </property>
              <property name="readOnly">
               <bool>true</bool>

@@ -196,6 +196,10 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.temp_oil_value.setText(str(cryomech_data['temp_oil']))
         self.avg_pressure_high_value.setText(str(cryomech_data['avg_pressure_high']))
         self.avg_pressure_low_value.setText(str(cryomech_data['avg_pressure_low']))
+        if cryomech_data['comp_on']==1:
+            self.comp_on_value.setText('ON')
+        if cryomech_data['comp_on']==0:
+            self.comp_on_value.setText('OFF')
         
         #Update Temperature and Setpoint Lists
         if len(self.temp_list) < 1000:

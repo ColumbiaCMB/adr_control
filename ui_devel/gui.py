@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Tue Apr  8 16:15:09 2014
+# Created: Wed Apr  9 17:12:29 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -551,7 +551,7 @@ class Ui_Form(object):
         self.gridLayout_6 = QtGui.QGridLayout()
         self.gridLayout_6.setObjectName(_fromUtf8("gridLayout_6"))
         spacerItem5 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.gridLayout_6.addItem(spacerItem5, 0, 3, 1, 1)
+        self.gridLayout_6.addItem(spacerItem5, 0, 4, 1, 1)
         self.verticalLayout_11 = QtGui.QVBoxLayout()
         self.verticalLayout_11.setContentsMargins(5, -1, 5, -1)
         self.verticalLayout_11.setObjectName(_fromUtf8("verticalLayout_11"))
@@ -581,7 +581,7 @@ class Ui_Form(object):
         self.temp_water_out_value.setReadOnly(True)
         self.temp_water_out_value.setObjectName(_fromUtf8("temp_water_out_value"))
         self.verticalLayout_11.addWidget(self.temp_water_out_value)
-        self.gridLayout_6.addLayout(self.verticalLayout_11, 0, 0, 1, 1)
+        self.gridLayout_6.addLayout(self.verticalLayout_11, 0, 1, 1, 1)
         self.verticalLayout_12 = QtGui.QVBoxLayout()
         self.verticalLayout_12.setContentsMargins(5, -1, 5, -1)
         self.verticalLayout_12.setObjectName(_fromUtf8("verticalLayout_12"))
@@ -611,7 +611,7 @@ class Ui_Form(object):
         self.temp_helium_value.setReadOnly(True)
         self.temp_helium_value.setObjectName(_fromUtf8("temp_helium_value"))
         self.verticalLayout_12.addWidget(self.temp_helium_value)
-        self.gridLayout_6.addLayout(self.verticalLayout_12, 0, 1, 1, 1)
+        self.gridLayout_6.addLayout(self.verticalLayout_12, 0, 2, 1, 1)
         self.verticalLayout_13 = QtGui.QVBoxLayout()
         self.verticalLayout_13.setContentsMargins(5, -1, 5, -1)
         self.verticalLayout_13.setObjectName(_fromUtf8("verticalLayout_13"))
@@ -641,7 +641,30 @@ class Ui_Form(object):
         self.avg_pressure_low_value.setReadOnly(True)
         self.avg_pressure_low_value.setObjectName(_fromUtf8("avg_pressure_low_value"))
         self.verticalLayout_13.addWidget(self.avg_pressure_low_value)
-        self.gridLayout_6.addLayout(self.verticalLayout_13, 0, 2, 1, 1)
+        self.gridLayout_6.addLayout(self.verticalLayout_13, 0, 3, 1, 1)
+        self.verticalLayout_19 = QtGui.QVBoxLayout()
+        self.verticalLayout_19.setContentsMargins(0, 45, 0, 45)
+        self.verticalLayout_19.setObjectName(_fromUtf8("verticalLayout_19"))
+        self.label_18 = QtGui.QLabel(self.tab_2)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_18.sizePolicy().hasHeightForWidth())
+        self.label_18.setSizePolicy(sizePolicy)
+        self.label_18.setText(QtGui.QApplication.translate("Form", "Cryomech Status", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_18.setObjectName(_fromUtf8("label_18"))
+        self.verticalLayout_19.addWidget(self.label_18)
+        self.comp_on_value = QtGui.QLineEdit(self.tab_2)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.comp_on_value.sizePolicy().hasHeightForWidth())
+        self.comp_on_value.setSizePolicy(sizePolicy)
+        self.comp_on_value.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.comp_on_value.setReadOnly(True)
+        self.comp_on_value.setObjectName(_fromUtf8("comp_on_value"))
+        self.verticalLayout_19.addWidget(self.comp_on_value)
+        self.gridLayout_6.addLayout(self.verticalLayout_19, 0, 0, 1, 1)
         self.gridLayout_7.addLayout(self.gridLayout_6, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab_2, _fromUtf8(""))
         self.gridLayout.addWidget(self.tabWidget, 0, 0, 1, 1)
