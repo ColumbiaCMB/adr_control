@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Wed Apr  9 17:12:29 2014
+# Created: Wed Apr 16 11:39:50 2014
 #      by: PyQt4 UI code generator 4.8.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -643,7 +643,7 @@ class Ui_Form(object):
         self.verticalLayout_13.addWidget(self.avg_pressure_low_value)
         self.gridLayout_6.addLayout(self.verticalLayout_13, 0, 3, 1, 1)
         self.verticalLayout_19 = QtGui.QVBoxLayout()
-        self.verticalLayout_19.setContentsMargins(0, 45, 0, 45)
+        self.verticalLayout_19.setContentsMargins(5, 0, 5, 0)
         self.verticalLayout_19.setObjectName(_fromUtf8("verticalLayout_19"))
         self.label_18 = QtGui.QLabel(self.tab_2)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
@@ -664,6 +664,19 @@ class Ui_Form(object):
         self.comp_on_value.setReadOnly(True)
         self.comp_on_value.setObjectName(_fromUtf8("comp_on_value"))
         self.verticalLayout_19.addWidget(self.comp_on_value)
+        self.label_32 = QtGui.QLabel(self.tab_2)
+        self.label_32.setText(QtGui.QApplication.translate("Form", "Motor Current", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_32.setObjectName(_fromUtf8("label_32"))
+        self.verticalLayout_19.addWidget(self.label_32)
+        self.motor_current_value = QtGui.QLineEdit(self.tab_2)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.motor_current_value.sizePolicy().hasHeightForWidth())
+        self.motor_current_value.setSizePolicy(sizePolicy)
+        self.motor_current_value.setReadOnly(True)
+        self.motor_current_value.setObjectName(_fromUtf8("motor_current_value"))
+        self.verticalLayout_19.addWidget(self.motor_current_value)
         self.gridLayout_6.addLayout(self.verticalLayout_19, 0, 0, 1, 1)
         self.gridLayout_7.addLayout(self.gridLayout_6, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab_2, _fromUtf8(""))

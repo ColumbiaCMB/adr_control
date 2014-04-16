@@ -12,7 +12,7 @@ import smdp
 # The postmessage is first an incrementing (in hex) character. The next two characters are a checksum that verifies the message. All of this calculation is taken care of in smdp.
 
 default_query_dictionary=[
-                                        {'hashcode':'\x63\x45\x4c\x00','name':"comp_hours",'scaling':1.0},
+                                        {'hashcode':'\x63\x45\x4c\x00','name':"comp_minutes",'scaling':1.0},
                                         {'hashcode':'\x63\x35\x74\x00','name':"cpu_temp",'scaling':1.0},
                                         {'hashcode': '\x63\x0D\x8F\x00','name':"temp_water_in",'scaling':1.0},
                                         {'hashcode':'\x63\x0D\x8F\x01','name':"temp_water_out",'scaling':1.0},
@@ -44,7 +44,7 @@ default_query_dictionary=[
                                         {'hashcode':'\x63\x5F\x95\x00','name':"comp_on",'scaling':1.0},
                                         {'hashcode':'\x63\x65\xA4\x00','name':"error_code",'scaling':1.0}
                                         ]
-                                        
+                                                 
 class cryomechServer():
 
 # This server will register in pyro namespace, continuously run, and push commands from adr_controller to the sim900.
@@ -120,8 +120,12 @@ class cryomechServer():
                     answer=self.communicator.fast_send_and_receive(msg,terminator='\r',end_of_response='\r')
                     result=self.smdp.destruct_answer(answer+'\r')
                     # fast_send_and_receive slices off the \r so we add it back in to get the correct amount of characters.
-                    try:
-                        self.data[j['name']]=(float(result)/10.0)
+                    try:          
+                        if j['name']=="error_code" or j['name']=="comp_on" or j['name']== "pressure_error" or j['name']=="temp_error" or j['name']=="batt_ok" or j['name']=="batt_low" or j['name']=="comp_minutes" or j['name']=="motor_current":
+                            self.data[j['name']]=float(result)
+                        else:
+                            # Most of the values need to be divided by ten to have the correct value.
+                            self.data[j['name']]=(float(result)/10.0)
                     except ValueError as e:
                         self.logger.warning('Value error in key %s. NaN inserted. Error printed below.'%(j['name']))
                         self.logger.warning(e)

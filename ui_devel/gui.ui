@@ -1223,16 +1223,16 @@
          <item row="0" column="0">
           <layout class="QVBoxLayout" name="verticalLayout_19">
            <property name="leftMargin">
-            <number>0</number>
+            <number>5</number>
            </property>
            <property name="topMargin">
-            <number>45</number>
-           </property>
-           <property name="rightMargin">
             <number>0</number>
            </property>
+           <property name="rightMargin">
+            <number>5</number>
+           </property>
            <property name="bottomMargin">
-            <number>45</number>
+            <number>0</number>
            </property>
            <item>
             <widget class="QLabel" name="label_18">
@@ -1257,6 +1257,26 @@
              </property>
              <property name="focusPolicy">
               <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_32">
+             <property name="text">
+              <string>Motor Current</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="motor_current_value">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
              </property>
              <property name="readOnly">
               <bool>true</bool>

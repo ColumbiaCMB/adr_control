@@ -200,6 +200,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.comp_on_value.setText('ON')
         if cryomech_data['comp_on']==0:
             self.comp_on_value.setText('OFF')
+        self.motor_current_value.setText(str(cryomech_data['motor_current']))
         
         #Update Temperature and Setpoint Lists
         if len(self.temp_list) < 1000:

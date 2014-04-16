@@ -18,8 +18,10 @@ class DataFile():
         
         self.nc=netCDF4.Dataset(fn,mode='w')
         
-        #self.time_dim=self.nc.createDimension('time',None)
-        #self.time_var=self.nc.createVariable('time',np.float32,dimensions=('time',))
+        self.recognized_keys=[
+                                {'key':'time', 'data_type':np.float64} 
+                                # Both cryomech server and sim900 server have the 'time' key, which should be a 64 bit float.
+                            ]
         
     def update(self,data):
     
@@ -50,8 +52,17 @@ class DataFile():
                         print e
                         self.nc.groups[group].variables[key][length]=np.nan
                 else:
-                    self.nc.groups[group].createVariable(key,np.float32,dimensions=('time',))
-                    # Create the variable
+                    recognize_key=False
+                    for dictionary in self.recognized_keys:
+                        if key in dictionary.keys():
+                            self.nc.groups[group].createVariable(key,dictionary['data_type'],dimensions=('time',))
+                            recognize_key=True
+                        # Recognized keys gives me a manual override for what the data_type should be.
+                        # This is important for time, since time must be float64 or it has ~ 2minute precision.
+                    if recognize_key==False:
+                        self.nc.groups[group].createVariable(key,np.float32,dimensions=('time',))
+                        # Create the variable default as float32.
+                        
                     try:
                         # Error handling in case values in the dictionary can't be converted to the correct type.
                         self.nc.groups[group].variables[key][length]=data[key]
