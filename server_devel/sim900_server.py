@@ -225,22 +225,26 @@ class sim900Server():
             
             if self.data['bridge_overload_status']>0:
                 # Waits for five cycles to see if the error fixes itself, then sends a command to autorange gain.
-                self.logger.warning('Bridge is overloaded %d'%(self.data['bridge_overload_status']))
                 
-                if self.data['bridge_autorange_gain']==1:
-                    self.logger.warning('Correction in progress')
+                if self.data['therm_temperature1'] >= 15 or self.data['therm_temperature2'] >= 15:
+                    # While the temperature is high, the bridge acts oddly, so we don't want to try to fix stuff until the temperature is low (measured by the magnet and floating diodes).
+                    pass
                     
                 else:
-                    if self.overload_wait<15:
-                        # Weighs errors 8 and 16 much less than the other errors. These errors will often self-correct.
-                        if self.data['bridge_overload_status']==8.0 or self.data['bridge_overload_status']==16.0:
-                            self.overload_wait+=1
-                        else:
-                            self.overload_wait+=3
+                    self.logger.warning('Bridge is overloaded %d'%(self.data['bridge_overload_status']))
+                    if self.data['bridge_autorange_gain']==1:
+                        self.logger.warning('Correction in progress')
                     else:
-                        self.logger.warning('Sending correction')
-                        self.send(1,'AGAI ON')
-                        self.overload_wait=0
+                        if self.overload_wait<15:
+                            # Weighs errors 8 and 16 much less than the other errors. These errors will often self-correct.
+                            if self.data['bridge_overload_status']==8.0 or self.data['bridge_overload_status']==16.0:
+                                self.overload_wait+=1
+                            else:
+                                self.overload_wait+=3
+                        else:
+                            self.logger.warning('Sending correction')
+                            self.send(1,'AGAI ON')
+                            self.overload_wait=0
                     
                     
 ### Convert voltage to torr. ###

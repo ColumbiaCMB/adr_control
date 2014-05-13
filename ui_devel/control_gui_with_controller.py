@@ -28,25 +28,26 @@ class PlotDialog(QDialog,gui.Ui_Form):
     def __init__(self, qApp, parent=None):
         super(PlotDialog, self).__init__(parent)
         
-        self.sim900=Pyro4.Proxy("PYRONAME:sim900server")
-        self.cryomech=Pyro4.Proxy("PYRONAME:cryomechserver")
+        self.sim900 = Pyro4.Proxy("PYRONAME:sim900server")
+        self.cryomech = Pyro4.Proxy("PYRONAME:cryomechserver")
+        self.relay = Pyro4.Proxy("PYRONAME:relayserver")
         
-        self.message_queue=[]
-        self.message_logger=message_logger.MessageFile(method=self.push_message)
+        self.message_queue = []
+        self.message_logger = message_logger.MessageFile(method=self.push_message)
         # This is for queued messages from the controller.
         
-        self.controller=adr_controller.AdrController(client=self.sim900,gui_input=True,gui_message_display=self.pass_to_logger)
-        self.data_logger=data_logger.DataFile()
+        self.controller = adr_controller.AdrController(client=self.sim900,gui_input=True,gui_message_display=self.pass_to_logger)
+        self.data_logger = data_logger.DataFile()
         # Sets up sim900 pyro proxy, AdrController, and data_logger - which records data in a netcdf format.
         
-        self.last_sim900_timestamp=0
-        self.last_cryomech_timestamp=0
+        self.last_sim900_timestamp = 0
+        self.last_cryomech_timestamp = 0
         # Used to make sure dictionaries are fully populated before the GUI logs them.
         
         self.__app = qApp
         self.setupUi(self)
         self.setupLists()
-        self.active_lists=[self.temp_list,self.magnet_current_list]
+        self.active_lists = [self.temp_list,self.magnet_current_list]
         self.setupTimer()
         # Timer for update
         self.setupTimer2()
@@ -54,7 +55,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.setupTimer3()
         # Timer for displaying queued messages from controller
         
-        self.plot=Superplot(self)
+        self.plot = Superplot(self)
         self.plotLayout.insertWidget(0,self.plot.canvas)
         self.toolbar=NavigationToolbar(self.plot.canvas,self)
         self.navbar_layout.insertWidget(0,self.toolbar)
@@ -128,6 +129,16 @@ class PlotDialog(QDialog,gui.Ui_Form):
         else:
             self.last_cryomech_timestamp=sim900_data['time']
             self.data_logger.update(cryomech_data)
+            
+            
+        relay_data = self.relay.fetch_dict()
+        if relay_data['time']==self.last_relay_timestamp:
+            return
+        else:
+            self.last_relay_timestamp=sim900_data['time']
+            self.data_logger.update(relay_data)
+            
+        # Is this a bug? We probably only want to worry about sim900 timestamp.
         
         
         temp_bridge = sim900_data['bridge_temp_value']

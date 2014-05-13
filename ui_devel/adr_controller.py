@@ -6,9 +6,10 @@ import Pyro4
 
 
 class AdrController():
-    def __init__(self,client,gui_input=False,gui_message_display=None,startup_state="standby",loop=True):
-        self.client=client
-        self.data=self.client.fetch_dict()
+    def __init__(self, sim900_server, relay_server, gui_input=False, gui_message_display=None, startup_state="standby", loop=True):
+        self.server = sim900_server
+        self.relay_server = relay_server
+        self.data=self.server.fetch_dict()
         # Client connection
         
         self.gui_input=gui_input
@@ -52,7 +53,7 @@ class AdrController():
         
     def change_state(self,state):
         self.state=state
-        self.client.set_state(state)
+        self.server.set_state(state)
         self.show('State changed to %s'%(state))
         
 ### Loop thread and function loop ###
@@ -72,7 +73,7 @@ class AdrController():
             if self.exit==True:
                 return 0
                 
-            self.data=self.client.fetch_dict()
+            self.data=self.server.fetch_dict()
             
             try:
                 
@@ -80,8 +81,8 @@ class AdrController():
                 # tells whether the bridge is using AGAI to fix and overload or not.
                 # Probably should just use a flag from the server.
                 
-                if fixing_flag:
-                    # Shows us what the overload status is.
+                if fixing_flag and (self.data['therm_temperature1'] <= 15 or self.data['therm_temperature2'] <= 15):
+                    # Shows us what the overload status is, but only if magnet or floating diode is below 15 K.
                     self.show('Bridge overload status is %f'%(self.data['bridge_overload_status']))
                     self.show('Bridge autorange gain is %d'%(self.data['bridge_autorange_gain']))
                 
@@ -100,7 +101,7 @@ class AdrController():
                     
                         if self.data['pid_manual_status']!=1:
                             # PID was shut off for some reason - probably fixing flag correction.
-                            success=self.client.unpause_ramp()
+                            success=self.server.unpause_ramp()
                             if success==False:
                                 self.show('Ramp unpause command failed.')
                                 continue
@@ -108,7 +109,7 @@ class AdrController():
                             result=self.data['pid_ramp_status']
                             # Ramp status paused = 3.
                             while result==3:
-                                result=self.client.query_pid_ramp_status()
+                                result=self.server.query_pid_ramp_status()
                                 tic=time.time()
                                 if tic-start>4.0:
                                     break
@@ -116,14 +117,14 @@ class AdrController():
                                 self.show('Ramp unpause command sent, but not processed.')
                                 continue
                             self.show('Ramp unpaused.')
-                            success=self.client.set_pid_manual_status(1)
+                            success=self.server.set_pid_manual_status(1)
                             if success==False:
                                 self.show('Setting PID on failed.')
                                 continue
                             start=time.time()
                             result=self.data['pid_manual_status']
                             while result!=1:
-                                result=self.client.query_pid_manual_status()
+                                result=self.server.query_pid_manual_status()
                                 tic=time.time()
                                 if tic-start>4.0:
                                     break
@@ -145,7 +146,7 @@ class AdrController():
                     if fixing_flag:
                         if self.data['pid_manual_status']==1:
                             self.show('Switching to manual output and pausing ramp until autorange gain finished.')
-                            success=self.client.pause_ramp()
+                            success=self.server.pause_ramp()
                             if success==False:
                                 self.show('Ramp pause command failed.')
                                 continue
@@ -153,7 +154,7 @@ class AdrController():
                             result=self.data['pid_ramp_status']
                             # Ramp status paused = 3, idle = 0
                             while result!=3:
-                                result=self.client.query_pid_ramp_status()
+                                result=self.server.query_pid_ramp_status()
                                 self.show(str(result))
                                 tic=time.time()
                                 if result == 0:
@@ -220,7 +221,7 @@ class AdrController():
                             continue
                     if self.data['pid_ramp_on']==1:
                     # check that ramping is off.
-                        success=self.client.set_ramp_on(0)
+                        success=self.server.set_ramp_on(0)
                         if success==False:
                             continue
                     if self.manual_output_now!=0:
@@ -236,11 +237,11 @@ class AdrController():
                                 time.sleep(self.refresh_rate)
                                 continue
                             if new_output<=0:
-                                success=self.client.set_manual_output(new_output)
+                                success=self.server.set_manual_output(new_output)
                                 if success==True:
                                     self.manual_output_now-=self.ramp_step
                             else:
-                                success=self.client.set_manual_output(0)
+                                success=self.server.set_manual_output(0)
                         if self.manual_output_now<0:
                             # If below zero (the system started that way, for example) slowly ramp back to zero.
                             # Can't use ramp_up because it uses current.
@@ -252,11 +253,11 @@ class AdrController():
                                 time.sleep(self.refresh_rate)
                                 continue
                             if new_output<=0:
-                                success=self.client.set_manual_output(new_output)
+                                success=self.server.set_manual_output(new_output)
                                 if success==True:
                                     self.manual_output_now+=self.ramp_step
                             else:
-                                success=self.client.set_manual_output(0)
+                                success=self.server.set_manual_output(0)
                             
             except ValueError as e:
                 # Deals with the system reaching certain values.
@@ -406,10 +407,10 @@ class AdrController():
             tic=time.time()
             if tic-start>4.0:
                 break
-            success=self.client.set_pid_propor_gain(gain)
+            success=self.server.set_pid_propor_gain(gain)
             if success==False:
                 continue
-            gain_now=self.client.query_pid_propor_gain()
+            gain_now=self.server.query_pid_propor_gain()
         if gain_now!=gain:
             self.show('Set gain failed.')
             return False
@@ -431,7 +432,7 @@ class AdrController():
         output_now=self.data['pid_measure_mon']
         output_now=min(output_now,self.ramp_goal)
         # Chooses the minimum of output_now and the ramp_goal.
-        success=self.client.set_pid_setpoint(output_now)
+        success=self.server.set_pid_setpoint(output_now)
         if success==False:
             self.show('Setting setpoint to output_now unsuccessful in request dwell.')
         # Sets pid setpoint to the value now.
@@ -439,7 +440,7 @@ class AdrController():
         difference=1
         start=time.time()
         while difference>0.1:
-            result=self.client.query_pid_setpoint()
+            result=self.server.query_pid_setpoint()
             if not isinstance(result,float):
                 success=False
                 break
@@ -452,7 +453,7 @@ class AdrController():
             self.show('Setpoint output_now command sent, but setpoint not changed in dwell request.')
             return False
         # Checks that the setpoint has actually been set to output now
-        success=self.client.set_pid_manual_status(1)
+        success=self.server.set_pid_manual_status(1)
         if success==False:
             self.show('Setting pid output on in request_dwell unsuccessful.')
             return False
@@ -466,8 +467,8 @@ class AdrController():
 ### Ramping methods ###
 
     def set_and_verify_setpoint(self,setpoint):
-        self.client.set_pid_setpoint(setpoint)
-        result=self.client.query_pid_setpoint()
+        self.server.set_pid_setpoint(setpoint)
+        result=self.server.query_pid_setpoint()
         if result!=setpoint:
             self.show('Result of setpoint query was %f'%(result))
             self.set_and_verify_setpoint(setpoint)
@@ -475,8 +476,8 @@ class AdrController():
     '''def set_and_verify_ramp(self,ramp_on):
         if not self.start_recursion:
             self.start_recursion=time.time()
-        self.client.set_ramp_on(ramp_on)
-        result=self.client.query_pid_ramp_on()
+        self.server.set_ramp_on(ramp_on)
+        result=self.server.query_pid_ramp_on()
         if not isinstance(result,float):
             self.show('Result of ramp query was %b'%(result))
             self.set_and_verify_ramp(ramp_on)
@@ -491,8 +492,8 @@ class AdrController():
         while result!=ramp_on:
             if time_passed>5.0:
                 return False
-            self.client.set_ramp_on(ramp_on)
-            result=self.client.query_pid_ramp_on()
+            self.server.set_ramp_on(ramp_on)
+            result=self.server.query_pid_ramp_on()
             time_passed=time.time()-start_loop
             
 
@@ -516,7 +517,7 @@ class AdrController():
         
         
         output_now=self.data['pid_measure_mon']
-        success=self.client.set_pid_setpoint(output_now)
+        success=self.server.set_pid_setpoint(output_now)
         if success==False:
             self.show('Setting setpoint to output_now unsuccessful.')
         # Sets pid setpoint to the value now.
@@ -524,7 +525,7 @@ class AdrController():
         difference=1
         start=time.time()
         while difference>0.1:
-            result=self.client.query_pid_setpoint()
+            result=self.server.query_pid_setpoint()
             if not isinstance(result,float):
                 success=False
                 break
@@ -537,17 +538,17 @@ class AdrController():
             self.show('Setpoint output_now command sent, but setpoint not changed.')
             return False
         # Checks that the setpoint has actually been set to output now
-        success=self.client.set_ramp_rate(rate)
+        success=self.server.set_ramp_rate(rate)
         if success==False:
             self.show('Setting ramp rate in ramp method unsuccessful.')
             return False
         # Set ramp rate
-        success=self.client.set_ramp_on(1)
+        success=self.server.set_ramp_on(1)
         if success==False:
             self.show('Setting ramp status in ramp method unsuccessful.')
             return False
         # Set ramp on
-        success=self.client.set_pid_setpoint(goal)
+        success=self.server.set_pid_setpoint(goal)
         if success==False:
             self.show('Setting setpoint goal in ramp method unsuccessful.')
             return False
@@ -556,7 +557,7 @@ class AdrController():
         difference=1
         start=time.time()
         while difference>0.1:
-            result=self.client.query_pid_setpoint()
+            result=self.server.query_pid_setpoint()
             if not isinstance(result,float):
                 success=False
                 break
@@ -569,7 +570,7 @@ class AdrController():
             self.show('Setpoint goal command sent, but setpoint not changed.')
             return False
         # Checks that the setpoint has actually been set.
-        success=self.client.set_pid_manual_status(1)
+        success=self.server.set_pid_manual_status(1)
         if success==False:
             self.show('Setting pid output on in ramp method unsuccessful.')
             return False
@@ -596,11 +597,11 @@ class AdrController():
         # Private method.
         # Returns true if executed successfully, false otherwise
         
-        self.data=self.client.fetch_dict()
+        self.data=self.server.fetch_dict()
         # Gets fresh data
         output_now=self.data['pid_output_mon']
         # Checks current output.
-        success=self.client.set_manual_output(output_now)
+        success=self.server.set_manual_output(output_now)
         # Sets manual output to that output.
         
         if success == False:
@@ -611,7 +612,7 @@ class AdrController():
         difference=1
         start=time.time()
         while difference>0.01:
-            result=self.client.query_manual_output()
+            result=self.server.query_manual_output()
             if not isinstance(result,float):
                 return False
             # Result will not be a float if query_manual_output failed. It will be false.
@@ -626,7 +627,7 @@ class AdrController():
         
         if self.data['pid_manual_status']==1:
             # If the mode is in PID control...
-            success=self.client.set_pid_manual_status(0)
+            success=self.server.set_pid_manual_status(0)
             # Turns manual output on.
             if success==False:
                 return False
@@ -634,7 +635,7 @@ class AdrController():
         else:
             self.show('Output mode already manual.')
            
-        self.data=self.client.fetch_dict()
+        self.data=self.server.fetch_dict()
         # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries)
         self.manual_output_now=self.data['pid_manual_out']
         # Sets the internal variable to the data value.
@@ -645,10 +646,10 @@ class AdrController():
         # Private method.
         # Returns true if executed successfully, false otherwise
         
-        self.data=self.client.fetch_dict()
+        self.data=self.server.fetch_dict()
         # Gets fresh data
         output_now=self.data['pid_measure_mon']
-        success=self.client.set_pid_setpoint(output_now)
+        success=self.server.set_pid_setpoint(output_now)
         # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries))
         # matches input voltage at front panel, not data from bridge, since there can be a voltage offset.
         # Note that there is a small ~0.05 offset between pid setpoint and bridge_temperature.
@@ -665,7 +666,7 @@ class AdrController():
         start=time.time()
         while difference>0.01:
             # This will only be a problem is we set the PID setpoint to zero and get a false connection from the server.
-            result=self.client.query_pid_setpoint()
+            result=self.server.query_pid_setpoint()
             if not isinstance(result,float):
                 return False
             # Result will not be a float if query_pid_setpoint failed. It will be false.
@@ -682,7 +683,7 @@ class AdrController():
             
         if self.data['pid_manual_status']==0:
             
-            success=self.client.set_pid_manual_status(1)
+            success=self.server.set_pid_manual_status(1)
             # Turns pid output on.
             if success==False:
                 return False
@@ -690,7 +691,7 @@ class AdrController():
             self.show('Output mode already PID.')
             
             
-        self.data=self.client.fetch_dict()
+        self.data=self.server.fetch_dict()
         # Makes sure we see the newest data (and get no boomerang effects where we update values based on out-of-date dictionaries)
         self.pid_setpoint_now=self.data['pid_setpoint']
         # Sets the internal variable to the data value.
@@ -753,7 +754,7 @@ class AdrController():
             if success==False:
                 self.show('Turning ramp on failed.')
                 return False
-        success=self.client.set_pid_setpoint(setpoint)
+        success=self.server.set_pid_setpoint(setpoint)
         if success==False:
             self.show('Updating setpoint unsuccessful.')
             return False
@@ -762,7 +763,7 @@ class AdrController():
         difference=1
         start=time.time()
         while difference>0.1:
-            result=self.client.query_pid_setpoint()
+            result=self.server.query_pid_setpoint()
             if not isinstance(result,float):
                 success=False
                 break
@@ -776,7 +777,6 @@ class AdrController():
             return False
         self.show('Setpoint update successfully.')
         return True
-            
         
 
 ### Standby ###
@@ -801,3 +801,5 @@ class AdrController():
         else:
             # Push to GUI handling function.
             self.gui_message_display(str(message))
+            
+### Relay commands ###
