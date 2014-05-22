@@ -36,12 +36,13 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.message_logger = message_logger.MessageFile(method=self.push_message)
         # This is for queued messages from the controller.
         
-        self.controller = adr_controller.AdrController(client=self.sim900,gui_input=True,gui_message_display=self.pass_to_logger)
+        self.controller = adr_controller.AdrController(self.sim900, self.relay, gui_input=True,gui_message_display=self.pass_to_logger)
         self.data_logger = data_logger.DataFile()
         # Sets up sim900 pyro proxy, AdrController, and data_logger - which records data in a netcdf format.
         
         self.last_sim900_timestamp = 0
         self.last_cryomech_timestamp = 0
+        self.last_relay_timestamp = 0
         # Used to make sure dictionaries are fully populated before the GUI logs them.
         
         self.__app = qApp

@@ -10,12 +10,12 @@ class relayServer():
 
 # This server will register in pyro namespace, and push commands to the relay controller.
 
-    def __init__(self, serial_port='/dev/ttyACM1'):
+    def __init__(self, serial_port='/dev/ttyACM0'):
         self.data = {'group':'relay'}
         self.setup_logger()
         self.serial_port = serial_port
         self.baudrate = 9600
-        self.status = 'open'
+        self.status = 'unknown'
         self.last_status = 'open'
         self.loop_thread=None
         
@@ -39,29 +39,18 @@ class relayServer():
                         'touch_1k', 'touch_50k', 'hs_opening', 'hs_closing']
                 for i in range(len(raw_data)):
                     self.data[keys[i]]=raw_data[i]
-                    
-                if self.data['hs_opening'] == 1:
-                    self.status = 'opening'
-                    self.last_status = 'opening'
-                elif self.data['hs_closing'] == 1:
-                    self.status = 'closing'
-                    self.last_status = 'closing'
+                # Need to turn status into a value convertable to a float for data logging:
+                if self.status == 'open':
+                    self.data['heat_switch_status'] = 1
+                elif self.status == 'closed':
+                    self.data['heat_switch_status'] = 0
                 else:
-                    if self.last_status == 'opening':
-                        self.status = 'open'
-                        self.last_status = 'open'
-                    elif self.last_status == 'closing':
-                        self.status = 'closed'
-                        self.last_status = 'open'
-                    else:
-                        self.last_status = self.status
-                self.data['status'] = self.status
+                    self.data['heat_switch_status'] = -1
                 
             except Exception as e:
                 self.logger.error('ERROR ENCOUNTERED. Loop ended and will start from the beginning after normal wait period.')
                 self.logger.error(e)
             self.data['time']=time.time()
-            print self.data
             time.sleep(5)
         
     def setup_logger(self,base_dir='/home/adclocal/data/garbage_cooldown_logs/server_logs/relay_server_logs',suffix=''):
@@ -120,32 +109,45 @@ class relayServer():
             raise e
         finally:
             ser.close()
-       
-   def regulate_switch(self):
+            
+    def insert_resistor_for_regulate(self):
+        self.logger.info('Tried inserting resistor for regulate.')
         self.send('a')
         check = self.get_raw_integers()
         if check[0] != 1:
+            self.logger.info('Failed at inserting resistor for regulate.')
             return False
+        self.logger.info('Succeeded at inserting resistor for regulate.')
         return True
             
-    def mag_cycle_switch(self):
+    def remove_resistor_for_mag_cycle(self):
+        self.logger.info('Tried removing resistor for mag cycle.')
         self.send('b')
         check = self.get_raw_integers()
         if check[0] != 0:
+            self.logger.info('Failed at removing resistor for mag cycle.')
             return False
+        self.logger.info('Succeeded at removing resistor for mag cycle.')
         return True
         
-    def current_pid_switch(self):
+    def switch_to_magnet_current_pid_control(self):
+        self.logger.info('Tried switching pid control to magnet current.')
         self.send('c')
         check = self.get_raw_integers()
         if check[1] != 1:
+            self.logger.info('Failed at switching pid control to magnet current.')
             return False
+        self.logger.info('Succeeded at switching pid control to magnet current.')
         return True
         
-    def temp_pid_switch(self):
+    def switch_to_bridge_temp_pid_control(self):
+        self.logger.info('Tried switching pid control to bridge temp.')
         self.send('d')
+        check = self.get_raw_integers()
         if check[1] != 0:
+            self.logger.info('Failed at switching pid control to bridge temp.')
             return False
+        self.logger.info('Succeeded at switching pid control to bridge temp.')
         return True
     
     def get_raw_integers(self):
@@ -155,7 +157,7 @@ class relayServer():
             # If we got overloaded, just return invalid data.
             return [-1]*7
         raw_integers = []
-        for character in raw:
+        for character in raw[:2]:
             if character == '1':
                 raw_integers.append(int(character))
             elif character == '0':
@@ -163,15 +165,59 @@ class relayServer():
             else:
                 # Data is invalid - return -1.
                 raw_integers.append(-1)
+                
+        # For the remaining characters we have backwards logic because we use a pullup.
+        # This code fixes it to be what we would expect (false = 0, true = 1)
+                
+        for character in raw[2:]:
+            if character == '1':
+                raw_integers.append(0)
+            elif character == '0':
+                raw_integers.append(1)
+            else:
+                # Data is invalid - return -1.
+                raw_integers.append(-1)
         return raw_integers
         
     def open_heat_switch(self):
         # send heat_switch open command
-        pass
+        self.logger.info('Tried opening heat switch.')
+        if self.status == 'open':
+            self.logger.info('Heat switch is already open.')
+            return True
+        self.send('e')
+        check = self.get_raw_integers()
+        if check[5] != 0:
+            if self.status == 'unknown':
+                # We assume the heatswitch was already open.
+                self.logger.info('Heat switch status changed from unknown to open.')
+                self.status = 'open'
+                return True
+            self.logger.info('Failed to open heat switch.')
+            return False
+        self.logger.info('Succeeded at opening heat switch.')
+        self.status = 'open'
+        return True
         
     def close_heat_switch(self):
         # send heat_switch open command
-        pass
+        self.logger.info('Tried closing heat switch.')
+        if self.status == 'closed':
+            self.logger.info('Heat switch is already closed.')
+            return True
+        self.send('f')
+        check = self.get_raw_integers()
+        if check[6] != 0:
+            if self.status == 'unknown':
+                # We assume the heatswitch was already closed.
+                self.logger.info('Heat switch status changed from unknown to closed.')
+                self.status = 'closed'
+                return True
+            self.logger.info('Failed to close heat switch.')
+            return False
+        self.logger.info('Succeeded at closing heat switch.')
+        self.status = 'closed'
+        return True
 
 def main():
     relay = relayServer()

@@ -339,20 +339,27 @@ class AdrController():
         return
                 
     def magup(self,peak_current,ramp_rate_up):
-        self.request_user_input(message='Switch PID measurement to current.')
-        if self.quit_thread==True:
-            self.show('Magup exited.')
-            return
-        time.sleep(0.5)
-        self.request_user_input(message='Switch to Mag Cycle.')
-        if self.quit_thread==True:
-            self.show('Magup exited.')
-            return
-        time.sleep(0.5)
+        #self.request_user_input(message='Switch PID measurement to current.')
+        #if self.quit_thread==True:
+        #    self.show('Magup exited.')
+        #    return
+        #time.sleep(0.5)
+        #self.request_user_input(message='Switch to Mag Cycle.')
+        #if self.quit_thread==True:
+        #    self.show('Magup exited.')
+        #    return
+        #time.sleep(0.5)
         # Make sure the popups don't come up so fast the user clicks both.
-        self.request_user_input(message='Close heat switch.')
-        if self.quit_thread==True:
-            self.show('Magup exited.')
+        #self.request_user_input(message='Close heat switch.')
+        #if self.quit_thread==True:
+        #    self.show('Magup exited.')
+        #    return
+        
+        success = self.switch_relays_for_regenerate()
+        if not success:
+            return
+        success = self.close_heat_switch()
+        if not success:
             return
         self.ramp_up(peak_current,ramp_rate_up)
         
@@ -389,13 +396,15 @@ class AdrController():
             time.sleep(0.01)
         
     def demag(self,ramp_rate_down):
-        self.request_user_input(message='Open heat switch.')
+        '''self.request_user_input(message='Open heat switch.')
         if self.quit_thread==True:
         
         # Should probably handle this case. What to do? Still ramp down? That is exactly what this already does.
         
             self.show('Demag exited.')
-            return
+            return'''
+            
+        self.open_heat_switch()
         self.ramp_down(ramp_rate_down)
         
 ### Setting and checking gain. ###
@@ -731,7 +740,11 @@ class AdrController():
         self.request_user_input(message='Switch to BNC PID input to bridge temperature.')
         
     def regulate_loop(self,pid_setpoint,pid_ramp_rate):
-        self.raise_regulate_user_inputs()
+        #self.raise_regulate_user_inputs()
+        
+        success = self.switch_relays_for_regulate()
+        if not success:
+            return
         self.start_regulate(pid_setpoint,pid_ramp_rate)
         self.show('Regulate loop finished successfully')
         
@@ -803,3 +816,37 @@ class AdrController():
             self.gui_message_display(str(message))
             
 ### Relay commands ###
+
+    def switch_relays_for_regulate(self):
+        success = self.relay_server.insert_resistor_for_regulate()
+        if not success:
+            self.show('Inserting resistor for regulation failed.')
+            return False
+        success = self.relay_server.switch_to_bridge_temp_pid_control()
+        if not success:
+            self.show('Switching to bridge temperature pid control failed.')
+            return False
+        return True
+    
+    def switch_relays_for_regenerate(self):
+        success = self.relay_server.remove_resistor_for_mag_cycle()
+        if not success:
+            self.show('Removing resistor for regulation failed.')
+            return False
+        success = self.relay_server.switch_to_magnet_current_pid_control()
+        if not success:
+            self.show('Switching to magnet current pid control failed.')
+            return False
+        return True
+        
+    def close_heat_switch(self):
+        success = self.relay_server.close_heat_switch()
+        if not success:
+            self.show('Closing heat switch failed')
+        return success
+        
+    def open_heat_switch(self):
+        success = self.relay_server.open_heat_switch()
+        if not success:
+            self.show('Opening heat switch failed')
+        return success
