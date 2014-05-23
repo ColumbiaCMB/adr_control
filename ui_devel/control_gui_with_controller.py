@@ -88,6 +88,12 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.update_setpoint_button.clicked.connect(self.request_update_setpoint)
         self.update_setpoint_button.setEnabled(False)
         
+        self.cryomech_on_button.clicked.connect(self.turn_cryomech_on)
+        self.cryomech_off_button.clicked.connect(self.turn_cryomech_off)
+        
+        self.hs_open_button.clicked.connect(self.open_heat_switch)
+        self.hs_close_button.clicked.connect(self.close_heat_switch)
+        
     def clear_history(self):
         self.setupLists()
         # Clears lists
@@ -138,8 +144,31 @@ class PlotDialog(QDialog,gui.Ui_Form):
         else:
             self.last_relay_timestamp=sim900_data['time']
             self.data_logger.update(relay_data)
-            
         # Is this a bug? We probably only want to worry about sim900 timestamp.
+                        
+        self.touch_50mk_value.setText(str(bool(relay_data['touch_50mk'])))
+        self.touch_1k_value.setText(str(bool(relay_data['touch_1k'])))
+        self.touch_50k_value.setText(str(bool(relay_data['touch_50k'])))
+        
+        if relay_data['heat_switch_status'] == 1:
+            self.heat_switch_status_value.setText('Open')
+        elif relay_data['heat_switch_status'] == 0:
+            self.heat_switch_status_value.setText('Closed')
+        else:
+            self.heat_switch_status_value.setText('Unknown')
+            
+        self.hs_opening_value.setText(str(bool(relay_data['hs_opening'])))
+        self.hs_closing_value.setText(str(bool(relay_data['hs_closing'])))
+        
+        if relay_data['regulate_active'] == 0:
+            self.resistor_status_value.setText('Mag cycle')
+        if relay_data['regulate_active'] == 1:
+            self.resistor_status_value.setText('Regulate')
+            
+        if relay_data['mag_current_active'] == 0:
+            self.pid_status_value.setText('Bridge temp')
+        if relay_data['mag_current_active'] == 1:
+            self.pid_status_value.setText('Mag current')
         
         
         temp_bridge = sim900_data['bridge_temp_value']
@@ -498,6 +527,22 @@ class PlotDialog(QDialog,gui.Ui_Form):
         
     def reject(self):
         return
+        
+### Cryomech control methods ###
+        
+    def turn_cryomech_on(self):
+        self.cryomech.turn_cryomech_on()
+        
+    def turn_cryomech_off(self):
+        self.cryomech.turn_cryomech_off()
+        
+### Relay control methods ###
+
+    def open_heat_switch(self):
+        self.relay.open_heat_switch()
+        
+    def close_heat_switch(self):
+        self.relay.close_heat_switch()
         
 ### Methods that deal with the controller requesting user input. ###
         

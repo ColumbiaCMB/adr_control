@@ -141,6 +141,18 @@ class cryomechServer():
             
     def fetch_dict(self):
         return self.data
+        
+    def turn_cryomech_on(self):
+        msg = '\x61\xD5\x01\x00'
+        msg += '\x00\x00\x00\x01'
+        msg = self.smdp.construct_msg(msg)
+        self.communicator.send(msg, terminator='\r')
+        
+    def turn_cryomech_off(self):
+        msg = '\x61\xC5\x98\x00'
+        msg += '\x00\x00\x00\x01'
+        msg = self.smdp.construct_msg(msg)
+        self.communicator.send(msg, terminator='\r')
             
 def main():
     cryo=cryomechServer(hostname="192.168.1.152")
