@@ -187,7 +187,7 @@ class relayServer():
             return True
         self.send('e')
         check = self.get_raw_integers()
-        if check[5] != 0:
+        if check[5] != 1:
             if self.status == 'unknown':
                 # We assume the heatswitch was already open.
                 self.logger.info('Heat switch status changed from unknown to open.')
@@ -207,7 +207,7 @@ class relayServer():
             return True
         self.send('f')
         check = self.get_raw_integers()
-        if check[6] != 0:
+        if check[6] != 1:
             if self.status == 'unknown':
                 # We assume the heatswitch was already closed.
                 self.logger.info('Heat switch status changed from unknown to closed.')
