@@ -834,7 +834,12 @@ class AdrController():
             return False
         self.show('Switching to bridge temperature pid control succeeded.')
         
-        
+        time.sleep(5)
+        # Sleeps to let the pid control equalize and the server to get the newest data.
+        self.data = self.server.fetch_dict()
+        if abs(self.data['pid_measure_mon'] - self.data['bridge_temp_value']) > 0.2:
+            self.show('pid_measure_mon is not close to bridge_temp. Terminating.')
+            return False
         
         return True
     
@@ -850,7 +855,12 @@ class AdrController():
             return False
         self.show('Switching to magnet current pid control succeeded.')
         
-        
+        time.sleep(5)
+        # Sleeps to let the pid control equalize and the server to get the newest data.
+        self.data = self.server.fetch_dict()
+        if abs(self.data['pid_measure_mon']) > 0.05:
+            self.show('pid_measure_mon is not close to zero. Terminating.')
+            return False
         
         return True
         
