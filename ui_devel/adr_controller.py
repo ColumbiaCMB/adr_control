@@ -55,6 +55,11 @@ class AdrController():
         self.state=state
         self.server.set_state(state)
         self.show('State changed to %s'%(state))
+        if state == 'standby':
+            self.switch_relays_for_regulate()
+            # If we are switching to standby, we want to regulate resistor in and the pid to work off temperature.
+            # This will switch primarily after ramp_down occurs, since when switching to standby from regulate, these settings
+            # are already the same.
         
 ### Loop thread and function loop ###
         
@@ -822,10 +827,15 @@ class AdrController():
         if not success:
             self.show('Inserting resistor for regulation failed.')
             return False
+        self.show('Inserting resistor for regulation succeeded.')
         success = self.relay_server.switch_to_bridge_temp_pid_control()
         if not success:
             self.show('Switching to bridge temperature pid control failed.')
             return False
+        self.show('Switching to bridge temperature pid control succeeded.')
+        
+        
+        
         return True
     
     def switch_relays_for_regenerate(self):
@@ -833,20 +843,27 @@ class AdrController():
         if not success:
             self.show('Removing resistor for regulation failed.')
             return False
+        self.show('Removing resistor for regulation succeeded.')
         success = self.relay_server.switch_to_magnet_current_pid_control()
         if not success:
             self.show('Switching to magnet current pid control failed.')
             return False
+        self.show('Switching to magnet current pid control succeeded.')
+        
+        
+        
         return True
         
     def close_heat_switch(self):
         success = self.relay_server.close_heat_switch()
         if not success:
-            self.show('Closing heat switch failed')
+            self.show('Closing heat switch failed.')
+        self.show('Closing heat switch succeeded.')
         return success
         
     def open_heat_switch(self):
         success = self.relay_server.open_heat_switch()
         if not success:
-            self.show('Opening heat switch failed')
+            self.show('Opening heat switch failed.')
+        self.show('Opening heat switch failed.')
         return success
