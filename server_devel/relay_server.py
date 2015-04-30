@@ -58,9 +58,9 @@ class relayServer():
                     self.logger.error('ERROR ENCOUNTERED. Loop ended and will start from the beginning after normal wait period.')
                     self.logger.error(e)
                 self.data['time']=time.time()
-                time.sleep(5)
             finally:
                 self.relay_server_lock.release()
+            time.sleep(5)
         
     def setup_logger(self,base_dir='/home/adclocal/data/garbage_cooldown_logs/server_logs/relay_server_logs',suffix=''):
         base_dir=os.path.expanduser(base_dir)

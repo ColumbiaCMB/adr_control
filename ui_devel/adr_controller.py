@@ -840,6 +840,8 @@ class AdrController():
         if abs(self.data['pid_measure_mon'] - self.data['bridge_temp_value']) > 0.2:
             self.show('pid_measure_mon is not close to bridge_temp. Terminating.')
             return False
+        self.show('pid_measure_mon was measured to be %f. This is close to the bridge temp. measurement, which is %f.' %
+                  (self.data['pid_measure_mon'], self.data['bridge_temp_value']))
         
         return True
     
@@ -861,6 +863,7 @@ class AdrController():
         if abs(self.data['pid_measure_mon']) > 0.05:
             self.show('pid_measure_mon is not close to zero. Terminating.')
             return False
+        self.show('pid_measure_mon was measured to be %f. This is close to the expected measurement of zero.' % self.data['pid_measure_mon'])
         
         return True
         
