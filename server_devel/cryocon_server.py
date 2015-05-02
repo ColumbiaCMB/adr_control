@@ -89,10 +89,10 @@ class CryoconServer():
                         except:
                             value = -1
                     self.data[name] = value
-                response = self.send_get("LOOP 1:TYPE?")
-                self.data['loop_1_status'] = response
-                response = self.send_get("LOOP 2:TYPE?")
-                self.data['loop_2_status'] = response
+#                response = self.send_get("LOOP 1:TYPE?")
+#                self.data['loop_1_status'] = response
+#                response = self.send_get("LOOP 2:TYPE?")
+#                self.data['loop_2_status'] = response
                 toc=time.time()
                 self.logger.info('Updating values took %.3f seconds'%(toc-tic))
             except Exception as e:
