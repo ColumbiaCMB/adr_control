@@ -837,7 +837,7 @@ class AdrController():
         time.sleep(5)
         # Sleeps to let the pid control equalize and the server to get the newest data.
         self.data = self.server.fetch_dict()
-        if abs(self.data['pid_measure_mon'] - self.data['bridge_temp_value']) > 0.2:
+        if abs(self.data['pid_measure_mon'] - self.data['bridge_temp_value']) > 0.05:
             self.show('pid_measure_mon is not close to bridge_temp. Terminating.')
             return False
         self.show('pid_measure_mon was measured to be %f. This is close to the bridge temp. measurement, which is %f.' %
