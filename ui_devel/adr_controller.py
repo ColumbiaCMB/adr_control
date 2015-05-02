@@ -871,12 +871,14 @@ class AdrController():
         success = self.relay_server.close_heat_switch()
         if not success:
             self.show('Closing heat switch failed.')
-        self.show('Closing heat switch succeeded.')
+        else:
+            self.show('Closing heat switch succeeded.')
         return success
         
     def open_heat_switch(self):
         success = self.relay_server.open_heat_switch()
         if not success:
             self.show('Opening heat switch failed.')
-        self.show('Opening heat switch failed.')
+        else:
+            self.show('Opening heat switch succeeded.')
         return success
