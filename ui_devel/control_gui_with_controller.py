@@ -31,6 +31,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.sim900 = Pyro4.Proxy("PYRONAME:sim900server")
         self.cryomech = Pyro4.Proxy("PYRONAME:cryomechserver")
         self.relay = Pyro4.Proxy("PYRONAME:relayserver")
+        self.cryocon = Pyro4.Proxy("PYRONAME:cryocon")
         
         self.message_queue = []
         self.message_logger = message_logger.MessageFile(method=self.push_message)
@@ -43,6 +44,7 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.last_sim900_timestamp = 0
         self.last_cryomech_timestamp = 0
         self.last_relay_timestamp = 0
+        self.last_cryocon_timestamp = 0
         # Used to make sure dictionaries are fully populated before the GUI logs them.
         
         self.__app = qApp
@@ -119,6 +121,10 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.fiftyk_stage_temp_list=[]
         self.floating_diode_temp_list=[]
         
+        self.cryocon_a_temp_list=[]
+        self.cryocon_b_temp_list=[]
+        
+        
         self.time_list=[]
         
     def update(self):
@@ -145,6 +151,12 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.last_relay_timestamp=sim900_data['time']
             self.data_logger.update(relay_data)
         # Is this a bug? We probably only want to worry about sim900 timestamp.
+        
+        try:
+            cryocon_data = self.cryocon.get_data()
+            self.data_logger.update(cryocon_data)
+        except:
+            cryocon_data = None
                         
         self.touch_50mk_value.setText(str(bool(relay_data['touch_50mk'])))
         self.touch_1k_value.setText(str(bool(relay_data['touch_1k'])))
@@ -183,6 +195,12 @@ class PlotDialog(QDialog,gui.Ui_Form):
         self.magnet_current_value.setText(str(current))
         voltage = sim900_data['dvm_volts0']
         self.magnet_voltage_value.setText(str(voltage))
+        if cryocon_data is None:
+            cryocon_a_temp = -1
+            cryocon_b_temp = -1
+        else:
+            cryocon_a_temp = cryocon_data['input_a_temp']
+            cryocon_b_temp = cryocon_data['input_b_temp']
         
         
         if sim900_data['cryostat_pressure']>=1:
@@ -280,6 +298,20 @@ class PlotDialog(QDialog,gui.Ui_Form):
                 del self.magnet_voltage_list[0]
             self.magnet_voltage_list.append(voltage)
             
+        if len(self.cryocon_a_temp_list) < 1000:
+            self.cryocon_a_temp_list.append(cryocon_a_temp)
+        elif len(self.cryocon_a_temp_list) >= 1000:
+            if not (self.active_lists[0]==self.cryocon_a_temp_list or self.active_lists[1]==self.cryocon_a_temp_list):
+                del self.cryocon_a_temp_list[0]
+            self.cryocon_a_temp_list.append(cryocon_a_temp)
+
+        if len(self.cryocon_b_temp_list) < 1000:
+            self.cryocon_b_temp_list.append(cryocon_b_temp)
+        elif len(self.cryocon_b_temp_list) >= 1000:
+            if not (self.active_lists[0]==self.cryocon_b_temp_list or self.active_lists[1]==self.cryocon_b_temp_list):
+                del self.cryocon_b_temp_list[0]
+            self.cryocon_b_temp_list.append(cryocon_b_temp)
+            
         self.update_list(self.magnet_diode_temp_list,sim900_data['therm_temperature1'])
         self.update_list(self.fiftyk_stage_temp_list,sim900_data['therm_temperature0'])
         self.update_list(self.floating_diode_temp_list,sim900_data['therm_temperature2'])
@@ -333,6 +365,10 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.active_lists[0]=self.fiftyk_stage_temp_list
         elif command=='Floating Diode Temperature':
             self.active_lists[0]=self.floating_diode_temp_list
+        elif command=='Cryocon A':
+            self.active_lists[0]=self.cryocon_a_temp_list
+        elif command=='Cryocon B':
+            self.active_lists[0]=self.cryocon_b_temp_list
         # Resets the active list to the commanded list.
         
         
@@ -363,6 +399,10 @@ class PlotDialog(QDialog,gui.Ui_Form):
             self.active_lists[1]=self.fiftyk_stage_temp_list
         elif command=='Floating Diode Temperature':
             self.active_lists[1]=self.floating_diode_temp_list
+        elif command=='Cryocon A':
+            self.active_lists[1]=self.cryocon_a_temp_list
+        elif command=='Cryocon B':
+            self.active_lists[1]=self.cryocon_b_temp_list
         # Resets the active list to the commanded list.
         
         if self.active_lists[1]!=old_active_list:

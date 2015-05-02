@@ -73,3 +73,8 @@ class Superplot():
             self.current_list[index]=self.parent.fiftyk_stage_temp_list
         elif command=='Floating Diode Temperature':
             self.current_list[index]=self.parent.floating_diode_temp_list
+        elif command=='Cryocon A':
+            self.current_list[index]=self.parent.cryocon_a_temp_list
+        elif command=='Cryocon B':
+            self.current_list[index]=self.parent.cryocon_b_temp_list
+
