@@ -17,11 +17,9 @@ class DataFile():
         # Creates filename based on timestamp (year,month,day,hr,min,sec,suffix)
         
         self.nc=netCDF4.Dataset(fn,mode='w')
-        
-        self.recognized_keys=[
-                                {'key':'time', 'data_type':np.float64} 
-                                # Both cryomech server and sim900 server have the 'time' key, which should be a 64 bit float.
-                            ]
+        # Both cryomech server and sim900 server have the 'time' key, which should be a 64 bit float.
+        self.recognized_keys=dict(time=np.float64)
+
         
     def update(self,data):
     
@@ -53,13 +51,11 @@ class DataFile():
                         self.nc.groups[group].variables[key][length]=np.nan
                 else:
                     recognize_key=False
-                    for dictionary in self.recognized_keys:
-                        if key in dictionary.keys():
-                            self.nc.groups[group].createVariable(key,dictionary['data_type'],dimensions=('time',))
-                            recognize_key=True
+                    if key in self.recognized_keys:
+                        self.nc.groups[group].createVariable(key,self.recognized_keys[key],dimensions=('time',))
                         # Recognized keys gives me a manual override for what the data_type should be.
                         # This is important for time, since time must be float64 or it has ~ 2minute precision.
-                    if recognize_key==False:
+                    else:
                         self.nc.groups[group].createVariable(key,np.float32,dimensions=('time',))
                         # Create the variable default as float32.
                         
