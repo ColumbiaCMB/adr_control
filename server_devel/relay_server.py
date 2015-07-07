@@ -62,7 +62,7 @@ class relayServer():
                 self.relay_server_lock.release()
             time.sleep(5)
         
-    def setup_logger(self,base_dir='/home/adclocal/data/garbage_cooldown_logs/server_logs/relay_server_logs',suffix=''):
+    def setup_logger(self,base_dir='/data/adc/cooldown_logs/server_logs/relay_server_logs',suffix=''):
         base_dir=os.path.expanduser(base_dir)
         
         fn=time.strftime('%Y-%m-%d_%H-%M-%S')

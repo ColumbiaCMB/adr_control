@@ -32,7 +32,7 @@ class data_logging:
 
         #self.file_name = os.path.join('/home/adclocal/data/cooldown_logs', self.file_name)
         # Actual path we want. For now, all test files are going to a new directory.
-        self.file_name = os.path.join('/home/adclocal/data/garbage_cooldown_logs', self.file_name)
+        self.file_name = os.path.join('/data/adc/cooldown_logs', self.file_name)
         self.rootgrp = Dataset(self.file_name, 'w', format='NETCDF4')
         self.setup_file()
 

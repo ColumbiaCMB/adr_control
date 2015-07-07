@@ -4,7 +4,7 @@ import sys
 import os
 
 class MessageFile():
-    def __init__(self,method=None,base_dir='/home/adclocal/data/garbage_cooldown_logs/gui_logs',suffix=''):
+    def __init__(self,method=None,base_dir='/data/adc/cooldown_logs/gui_logs',suffix=''):
     
         base_dir=os.path.expanduser(base_dir)
                 

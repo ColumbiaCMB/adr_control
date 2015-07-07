@@ -114,7 +114,7 @@ class sim900Server():
         
         self.overload_wait=0
         
-    def setup_logger(self,base_dir='/home/adclocal/data/garbage_cooldown_logs/server_logs/sim900_server_logs',suffix=''):
+    def setup_logger(self,base_dir='/data/adc/cooldown_logs/server_logs/sim900_server_logs',suffix=''):
         base_dir=os.path.expanduser(base_dir)
         
         fn=time.strftime('%Y-%m-%d_%H-%M-%S')

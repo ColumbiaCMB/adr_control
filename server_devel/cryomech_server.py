@@ -66,7 +66,7 @@ class cryomechServer():
         self.loop_thread=None
         self.start_loop_thread()
         
-    def setup_logger(self,base_dir='/home/adclocal/data/garbage_cooldown_logs/server_logs/cryomech_server_logs',suffix=''):
+    def setup_logger(self,base_dir='/data/adc/cooldown_logs/server_logs/cryomech_server_logs',suffix=''):
         base_dir=os.path.expanduser(base_dir)
         
         fn=time.strftime('%Y-%m-%d_%H-%M-%S')

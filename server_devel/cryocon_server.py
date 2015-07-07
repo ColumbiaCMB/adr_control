@@ -42,7 +42,7 @@ class CryoconServer():
         result = self.send_get("*IDN?")
         self.logger.info("identification request response: %s" % repr(result))
 
-    def setup_logger(self,base_dir='/home/adclocal/data/garbage_cooldown_logs/server_logs/cryocon_server_logs',
+    def setup_logger(self,base_dir='/data/adc/cooldown_logs/server_logs/cryocon_server_logs',
                      suffix=''):
         base_dir=os.path.expanduser(base_dir)
 

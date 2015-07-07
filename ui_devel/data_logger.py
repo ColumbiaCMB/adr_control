@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 class DataFile():
-    def __init__(self,base_dir='/home/adclocal/data/garbage_cooldown_logs',suffix=''):
+    def __init__(self,base_dir='/data/adc/cooldown_logs',suffix=''):
         base_dir=os.path.expanduser(base_dir)
                 
         fn=time.strftime('%Y-%m-%d_%H-%M-%S')
